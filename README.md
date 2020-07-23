@@ -1,4 +1,4 @@
-# Deep CLEM
+# CLEMnet
 Convolutional neural network for prediction of fluorescence in EM images
 
 
