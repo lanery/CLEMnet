@@ -33,7 +33,9 @@ pip install --no-cache-dir git+https://github.com/lanery/CLEMnet
 ```
 
 #### (Optional) `iCAT-workflow` installation
+```
 (fmml_gpu) [rlane@hpc29:~]$ git clone https://www.github.com/fcollman/render-python
 (fmml_gpu) [rlane@hpc29:~]$ cd ./render-python/
 (fmml_gpu) [rlane@hpc29:render-python]$ python ./setup.py install
 (fmml_gpu) [rlane@hpc29:~]$ pip install --no-cache-dir git+https://github.com/lanery/iCAT-workflow
+```
