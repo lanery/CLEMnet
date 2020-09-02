@@ -1,12 +1,12 @@
 # CLEMnet
 Convolutional neural network for prediction of fluorescence in EM images
 
-#### Installation via GitHub
+### Installation via GitHub
 ```
 pip install --no-cache-dir git+https://github.com/lanery/CLEMnet
 ```
 
-#### Setup instructions for hpc29
+### Setup instructions for hpc29
 * Install miniconda
 ```
 [rlane@hpc29:~]$ bash ./Miniconda3-latest-Linux-x86_64.sh
@@ -17,7 +17,7 @@ pip install --no-cache-dir git+https://github.com/lanery/CLEMnet
 [rlane@hpc29:~]$ conda activate fmml_gpu
 ```
 
-#### To run in a Jupyter notebook
+### To run in a Jupyter notebook
 * Start jupyter lab session
 ```
 [rlane.TUD278418] ➤ ssh -L localhost:8893:localhost:8892 rlane@hpc29
@@ -32,7 +32,7 @@ pip install --no-cache-dir git+https://github.com/lanery/CLEMnet
 (fmml_gpu) [rlane@hpc29:~]$ jupyter labextension install @jupyter-widgets/jupyterlab-manager
 ```
 
-#### (Optional) `iCAT-workflow` installation
+### (Optional) `iCAT-workflow` installation
 ```
 (fmml_gpu) [rlane@hpc29:~]$ git clone https://www.github.com/fcollman/render-python
 (fmml_gpu) [rlane@hpc29:~]$ cd ./render-python/
