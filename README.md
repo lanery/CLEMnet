@@ -1,9 +1,9 @@
 # CLEMnet
 Convolutional neural network for prediction of fluorescence in EM images
 
-### Installation via GitHub
+### Clone from GitHub
 ```
-pip install --no-cache-dir git+https://github.com/lanery/CLEMnet
+git clone https://github.com/lanery/CLEMnet.git
 ```
 
 ### Setup instructions for hpc29
