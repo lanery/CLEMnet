@@ -31,6 +31,7 @@ git clone https://github.com/lanery/CLEMnet.git
 (fmml_gpu) [rlane@hpc29:~]$ jupyter nbextension enable --py widgetsnbextension
 (fmml_gpu) [rlane@hpc29:~]$ jupyter labextension install @jupyter-widgets/jupyterlab-manager
 ```
+* Then restart jupyter lab
 
 ### (Optional) `iCAT-workflow` installation
 ```
