@@ -13,7 +13,7 @@ def get_model(input_shape):
     """
     U-net-like convolutional neural network
     """
-    inputs = layers.Input()
+    inputs = layers.Input(input_shape)
 
     conv0 = layers.Conv2D(32, 3, padding='same', activation='relu')(inputs)
     pool0 = layers.MaxPooling2D(2)(conv0)
