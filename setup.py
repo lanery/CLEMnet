@@ -9,7 +9,7 @@ README = 'README.md'
 URL = 'https://github.com/lanery/clemnet'
 VERSION = '0.1.dev'
 PACKAGES = [
-    'model',
+    'clemnet',
 ]
 INSTALL_REQUIRES = [
     'tensorflow',
