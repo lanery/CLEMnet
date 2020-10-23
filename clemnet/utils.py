@@ -2,6 +2,11 @@ import numpy as np
 from skimage import color, exposure
 
 
+__all__ = ['colorize',
+           'T_HOECHST',
+           'T_INSULIN']
+
+
 # Color transformations
 T_HOECHST = [[0.2, 0.0, 0.0, 0.2],
              [0.0, 0.2, 0.0, 0.2],
