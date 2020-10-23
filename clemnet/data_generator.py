@@ -42,12 +42,12 @@ class TilePairGenerator(keras.utils.Sequence):
         batch_EM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float32')
         for j, fp in enumerate(fps_src_batch):
             image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
-            batch_EM[j] = np.expand_dims(image, 2)
+            batch_EM[j] = np.expand_dims(image, 2) / 255.
 
         # Create batch of FM images
         batch_FM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float32')
         for j, fp in enumerate(fps_tgt_batch):
             image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
-            batch_FM[j] = np.expand_dims(image, 2)
+            batch_FM[j] = np.expand_dims(image, 2) / 255.
 
         return batch_EM, batch_FM
