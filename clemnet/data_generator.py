@@ -28,7 +28,7 @@ class TilePairGenerator(keras.utils.Sequence):
         self.fps_tgt = fps_tgt
 
     def __len__(self):
-        return len(self.target_img_paths) // self.batch_size
+        return len(self.fps_tgt) // self.batch_size
 
     def __getitem__(self, idx):
         """Returns tuple of images (source, target) corresponding to batch index"""
