@@ -12,7 +12,7 @@ PACKAGES = [
     'clemnet',
 ]
 INSTALL_REQUIRES = [
-    'tensorflow',
+    # 'tensorflow',
 ]
 
 if __name__ == '__main__':
