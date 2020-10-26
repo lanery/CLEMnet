@@ -19,7 +19,7 @@ pip install git+git://github.com/lanery/CLEMnet.git
 ```
 * Create python environment
 ```
-[rlane@hpc29:~]$ conda create -n fmml_gpu tensorflow-gpu pandas numpy scikit-learn scikit-image opencv seaborn shapely jupyterlab beautifulsoup4 hdf5 matplotlib scipy altair vega_datasets
+[rlane@hpc29:~]$ conda create -n fmml_gpu tensorflow-gpu numpy scipy scikit-learn scikit-image pandas opencv jupyterlab matplotlib
 [rlane@hpc29:~]$ conda activate fmml_gpu
 ```
 
