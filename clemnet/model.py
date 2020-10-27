@@ -23,16 +23,31 @@ def get_model(input_shape):
     -------
     model : `keras.Model`
     """
-    inputs = layers.Input(input_shape)
+    inputs = layers.Input(shape=(*shape, 1))
 
-    conv0 = layers.Conv2D(32, 3, padding='same', activation='relu')(inputs)
-    pool0 = layers.MaxPooling2D(2)(conv0)
+    x = layers.Conv2D(32, 3, activation='relu', padding='same')(inputs)
+#     x = layers.BatchNormalization()(x)
 
-    conv1 = layers.Conv2D(64, 3, padding='same', activation='relu')(pool0)
-    pool0 = layers.MaxPooling2D(2)(conv1)
+    for filters in [64, 128]:
 
-    conv2 = layers.Conv2D(128, )
+        x = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
+#         x = layers.BatchNormalization()(x)
+        x = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
+#         x = layers.BatchNormalization()(x)
+        x = layers.MaxPooling2D(2)(x)
 
-    model = keras.Model(inputs=inputs,
-                        outputs=conv1)
+    for filters in [128, 64]:
+
+        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding='same')(x)
+#         x = layers.BatchNormalization()(x)
+        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding='same')(x)
+#         x = layers.BatchNormalization()(x)
+
+        x = layers.UpSampling2D(2)(x)
+
+    # Output layer
+    outputs = layers.Dense(1, activation='sigmoid')(x)
+
+    model = keras.Model(inputs, outputs)
+
     return model
