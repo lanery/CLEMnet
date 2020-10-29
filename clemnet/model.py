@@ -26,7 +26,7 @@ def get_model(input_shape=(1024, 1024)):
     inputs = layers.Input(input_shape=(*input_shape, 1))
 
     x = layers.Conv2D(32, 3, activation='relu', padding='same')(inputs)
-#     x = layers.BatchNormalization()(x)
+    x = layers.BatchNormalization()(x)
 
     for filters in [64, 128]:
 
