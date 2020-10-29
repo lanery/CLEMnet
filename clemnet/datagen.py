@@ -1,7 +1,7 @@
 import numpy as np
+from skimage.io import imread
 from skimage.transform import downscale_local_mean
 from tensorflow import keras
-from tensorflow.keras.preprocessing.image import load_img
 
 
 __all__ = ['TilePairGenerator']
@@ -22,9 +22,8 @@ class TilePairGenerator(keras.utils.Sequence):
         List of target FM filepaths
     """
 
-    def __init__(self, batch_size, img_size, fps_src, fps_tgt):
+    def __init__(self, batch_size, fps_src, fps_tgt):
         self.batch_size = batch_size
-        self.img_size = img_size
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
 
@@ -40,16 +39,19 @@ class TilePairGenerator(keras.utils.Sequence):
         fps_tgt_batch = self.fps_tgt[i: (i+self.batch_size)]
 
         # Create batch of EM images
-        batch_EM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float16')
-        for j, fp in enumerate(fps_src_batch):
-            image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
-            batch_EM[j] = np.expand_dims(image, 2) / 255.
+        batch_EM = []
+        for fp in fps_src_batch:
+            image = imread(fp, as_gray=True) / 255.
+            image = image[..., np.newaxis].astype(np.float16)
+            batch_EM.append(image)
 
         # Create batch of FM images
-        batch_FM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float16')
-        for j, fp in enumerate(fps_tgt_batch):
-            image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
-            batch_FM[j] = np.expand_dims(image, 2) / 255.
-            batch_FM[j] = downscale_local_mean(batch_FM[j], factors=(4, 4, 1))
+        batch_FM = []
+        for fp in fps_tgt_batch:
+            image = imread(fp, as_gray=True) / 255.
+            # Downscale (1024, 1024) --> (256, 256)
+            image = downscale_local_mean(image, factors=(4, 4))
+            image = image[..., np.newaxis].astype(np.float16)
+            batch_FM.append(image)
 
-        return batch_EM, batch_FM
+        return np.array(batch_EM), np.array(batch_FM)
