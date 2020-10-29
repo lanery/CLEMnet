@@ -8,10 +8,7 @@ LICENSE = 'LICENSE'
 README = 'README.md'
 URL = 'https://github.com/lanery/clemnet'
 VERSION = '0.1.dev'
-PACKAGES = [
-    'clemnet',
-    'legacy'
-]
+PACKAGES = ['clemnet']
 INSTALL_REQUIRES = [
     # 'tensorflow',
 ]
