@@ -1,4 +1,5 @@
 import numpy as np
+from skimage.transform import downscale_local_mean
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import load_img
 
@@ -39,15 +40,16 @@ class TilePairGenerator(keras.utils.Sequence):
         fps_tgt_batch = self.fps_tgt[i: (i+self.batch_size)]
 
         # Create batch of EM images
-        batch_EM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float32')
+        batch_EM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float16')
         for j, fp in enumerate(fps_src_batch):
             image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
             batch_EM[j] = np.expand_dims(image, 2) / 255.
 
         # Create batch of FM images
-        batch_FM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float32')
+        batch_FM = np.zeros((self.batch_size,) + self.img_size + (1,), dtype='float16')
         for j, fp in enumerate(fps_tgt_batch):
             image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
             batch_FM[j] = np.expand_dims(image, 2) / 255.
+            batch_FM[j] = downscale_local_mean(batch_FM[j], (4, 4, 1)))
 
         return batch_EM, batch_FM

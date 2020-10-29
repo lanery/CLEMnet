@@ -56,6 +56,7 @@ def get_n_tensors(model):
     tensor_shapes = [layer.input_shape[1:] if isinstance(layer.input_shape, tuple)\
                                            else layer.input_shape[0][1:]\
                                            for layer in model.layers]
+    # Then add 'em up
     n_tensors = np.product(tensor_shapes, axis=1).sum()
     return n_tensors
 
@@ -83,6 +84,8 @@ def get_max_batch_size(gpu_ram, model):
     Ref: https://stackoverflow.com/a/46656508/5285918
     Optimal number of batches should be the highest power of 2 < max batch size
     """
+    # Get number of tensors in model
     n_tensors = get_n_tensors(model)
+    # Calculate max batch size
     max_batch_size = (1e9*gpu_ram / 4) / (n_tensors + model.count_params())
     return max_batch_size
