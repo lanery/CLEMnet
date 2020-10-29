@@ -50,6 +50,6 @@ class TilePairGenerator(keras.utils.Sequence):
         for j, fp in enumerate(fps_tgt_batch):
             image = load_img(fp, target_size=self.img_size, color_mode='grayscale')
             batch_FM[j] = np.expand_dims(image, 2) / 255.
-            batch_FM[j] = downscale_local_mean(batch_FM[j], (4, 4, 1)))
+            batch_FM[j] = downscale_local_mean(batch_FM[j], factors=(4, 4, 1))
 
         return batch_EM, batch_FM

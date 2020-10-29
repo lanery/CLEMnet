@@ -3,6 +3,8 @@ from skimage import color, exposure
 
 
 __all__ = ['colorize',
+           'get_n_tensors',
+           'get_max_batch_size',
            'T_HOECHST',
            'T_INSULIN']
 
