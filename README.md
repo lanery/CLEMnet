@@ -1,7 +1,7 @@
 # CLEMnet
 Convolutional neural network for prediction of fluorescence in EM images
 
-Created by Luuk Balkenende
+Created by Luuk Balkenende, Lennard Voortman, and Ryan Lane
 
 ### Clone from GitHub
 ```
