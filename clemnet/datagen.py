@@ -119,16 +119,16 @@ def augment(image, flips=True, rotation=True, translation=True,
         image = tf.keras.preprocessing.image\
                   .random_rotation(image, rg=30, **kwargs)
 
-#     # Translation
-#     if translation:
-#         image = tf.keras.preprocessing.image\
-#                   .random_shift(image, wrg=0.2, hrg=0.2, **kwargs)
+    # Translation
+    if translation:
+        image = tf.keras.preprocessing.image\
+                  .random_shift(image, wrg=0.2, hrg=0.2, **kwargs)
 
-#     # Scale
-#     if scale:
-#         kwargs['fill_mode'] = 'constant'
-#         image = tf.keras.preprocessing.image\
-#                   .random_zoom(image, zoom_range=(0.8, 1.2), **kwargs)
+    # Scale
+    if scale:
+        kwargs['fill_mode'] = 'constant'
+        image = tf.keras.preprocessing.image\
+                  .random_zoom(image, zoom_range=(0.8, 1.2), **kwargs)
 
     # Contrast / brightness
     if contrast:
