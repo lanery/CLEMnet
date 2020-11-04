@@ -33,9 +33,10 @@ class TilePairGenerator(keras.utils.Sequence):
         List of input EM filepaths
     fps_tgt : list
         List of target FM filepaths
+    augmentations
     """
 
-    def __init__(self, batch_size, fps_src, fps_tgt,
+    def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
                  augmentations=None):
         self.batch_size = batch_size
         self.fps_src = fps_src
@@ -43,7 +44,7 @@ class TilePairGenerator(keras.utils.Sequence):
         # Set up default augmentations
         self.augment = augment
         if augmentations is None:
-            self.augmentations = augmentations
+            self.augmentations = AUGMENTATIONS
 
     def __len__(self):
         return len(self.fps_tgt) // self.batch_size
