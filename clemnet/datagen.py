@@ -75,7 +75,7 @@ class TilePairGenerator(keras.utils.Sequence):
             # Augmentation functions in tf.keras.preprocessing.image
             # require 3 channel (RGB) input images
             image = np.stack([image_EM, image_FM], axis=2)
-            image = augment(image, self.augmentations)
+            image = augment(image, **self.augmentations)
             image_EM = image[:,:,0]
             image_FM = image[:,:,1]
 
@@ -96,13 +96,13 @@ def augment(image, flips=True, rotation=True, translation=True,
 
     Parameters
     ----------
-    images : list
-        Input images to be augmented
+    image : (M, N, C) array
+        Input image to be augmented
 
     Returns
     -------
-    images : list
-        Augmented images
+    image : (M, N, C) array
+        Augmented image
     """
     kwargs = {'row_axis': 0,
               'col_axis': 1,
