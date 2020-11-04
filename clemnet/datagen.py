@@ -1,10 +1,13 @@
 import numpy as np
 from skimage.io import imread
 from skimage.transform import downscale_local_mean
+
+import tensorflow as tf
 from tensorflow import keras
 
 
-__all__ = ['TilePairGenerator']
+__all__ = ['TilePairGenerator',
+           'augment']
 
 
 class TilePairGenerator(keras.utils.Sequence):
