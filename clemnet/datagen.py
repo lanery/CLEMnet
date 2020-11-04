@@ -41,10 +41,8 @@ class TilePairGenerator(keras.utils.Sequence):
         self.batch_size = batch_size
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
-        # Set up default augmentations
         self.augment = augment
-        if augmentations is None:
-            self.augmentations = AUGMENTATIONS
+        self.augmentations = AUGMENTATIONS if augmentations is None else augmentations        
 
     def __len__(self):
         return len(self.fps_tgt) // self.batch_size
