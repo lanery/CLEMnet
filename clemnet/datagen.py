@@ -9,6 +9,16 @@ from tensorflow import keras
 __all__ = ['TilePairGenerator',
            'augment']
 
+# Augmentations
+AUGMENTATIONS = {
+    'flips': True,
+    'rotation': True,
+    'translation': False,
+    'scale': False,
+    'contrast': False,
+    'brightness': False
+}
+
 
 class TilePairGenerator(keras.utils.Sequence):
     """Generates batches of EM, FM tile pairs to facilitate training & testing
@@ -25,11 +35,15 @@ class TilePairGenerator(keras.utils.Sequence):
         List of target FM filepaths
     """
 
-    def __init__(self, batch_size, fps_src, fps_tgt, augment=True):
+    def __init__(self, batch_size, fps_src, fps_tgt,
+                 augmentations=None):
         self.batch_size = batch_size
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
+        # Set up default augmentations
         self.augment = augment
+        if augmentations is None:
+            self.augmentations = augmentations
 
     def __len__(self):
         return len(self.fps_tgt) // self.batch_size
@@ -62,7 +76,7 @@ class TilePairGenerator(keras.utils.Sequence):
             # Augmentation functions in tf.keras.preprocessing.image
             # require 3 channel (RGB) input images
             image = np.stack([image_EM, image_FM], axis=2)
-            image = augment(image)
+            image = augment(image, self.augmentations)
             image_EM = image[:,:,0]
             image_FM = image[:,:,1]
 
