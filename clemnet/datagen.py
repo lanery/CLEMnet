@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage.filters import gaussian_filter
 from skimage.io import imread
 from skimage.transform import downscale_local_mean
 
@@ -25,7 +27,7 @@ class TilePairGenerator(keras.utils.Sequence):
 
     Parameters
     ----------
-    batch_size : int
+    batch_size : scalar
         Batch size
     img_size : tuple
         Image shape, typically (1024, 1024)
@@ -68,6 +70,7 @@ class TilePairGenerator(keras.utils.Sequence):
             batch_FM.append(image_FM)
 
         return np.array(batch_EM), np.array(batch_FM)
+
 
 def fetch_image_pairs(self, fp_EM, fp_FM, augment=False):
     """Fetch images for the data generator
@@ -117,12 +120,12 @@ def distort(image, flips=True, rotation=True, translation=True,
 
     Parameters
     ----------
-    image : (M, N, C) array
+    image : (M, N, d) array
         Input image to be augmented
 
     Returns
     -------
-    image : (M, N, C) array
+    image : (M, N, d) array
         Augmented image
     """
     kwargs = {'row_axis': 0,
@@ -153,3 +156,37 @@ def distort(image, flips=True, rotation=True, translation=True,
         image = tf.image.random_brightness(image, 0.2).numpy()
 
     return image
+
+
+def elastic_transform(image, alpha=400, sigma=20):
+    """Apply a randomly generated elastic tranform
+
+    Parameters
+    ----------
+    image : (M, N, d)
+        Input image to be transformed
+    alpha : scalar
+        Amplitude of Gaussian filtered noise
+    sigma : scalar
+        Smoothing factor, standard deviation for Gaussian kernel
+
+    Returns
+    -------
+    transformed : (M, N, d)
+        Elastically transformed image    
+    """
+
+    # Gaussian filter some noise
+    dx = gaussian_filter((np.random.rand(*image.shape) * 2 - 1), sigma) * alpha
+    dy = gaussian_filter((np.random.rand(*image.shape) * 2 - 1), sigma) * alpha
+
+    # Create distortion grid
+    x, y, z = np.meshgrid(np.arange(image.shape[1]),
+                          np.arange(image.shape[0]),
+                          np.arange(image.shape[2]))
+    indices = (np.reshape(y+dy, (-1, 1)),
+               np.reshape(x+dx, (-1, 1)),
+               np.reshape(z, (-1, 1)))
+    transformed = map_coordinates(image, indices, order=1, mode='reflect')
+
+    return transformed.reshape(image.shape)
