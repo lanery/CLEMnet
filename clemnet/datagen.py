@@ -5,6 +5,8 @@ from skimage.transform import downscale_local_mean
 import tensorflow as tf
 from tensorflow import keras
 
+import augmentations
+
 
 __all__ = ['TilePairGenerator',
            'fetch_image_pairs']
@@ -25,17 +27,18 @@ class TilePairGenerator(keras.utils.Sequence):
         List of target FM filepaths
     augment : bool
         Whether to apply image augmentations
-    augmentations : dict
-        Mapping of augmentations passed to `augment`
+    transforms : dict
+        Mapping of transforms passed to `augmentations.distort`
     """
 
     def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
-                 augmentations=None):
+                 transforms=None):
         self.batch_size = batch_size
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
         self.augment = augment
-        self.augmentations = AUGMENTATIONS if augmentations is None else augmentations        
+        self.transforms = augmentations.TRANSFORMS \
+                          if transforms is None else transforms        
 
     def __len__(self):
         return len(self.fps_tgt) // self.batch_size
@@ -87,7 +90,7 @@ def fetch_image_pairs(self, fp_EM, fp_FM, augment=False):
         # Augmentation functions in tf.keras.preprocessing.image
         # require 3 channel (RGB) input images
         image = np.stack([image_EM, image_FM], axis=2)
-        image = distort(image, **self.augmentations)
+        image = augmentations.distort(image, **self.transforms)
         image_EM = image[:,:,0]
         image_FM = image[:,:,1]
 
