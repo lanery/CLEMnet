@@ -4,13 +4,13 @@ from scipy.ndimage.filters import gaussian_filter
 
 import tensorflow as tf
 
-__all__ = ['distort',
+__all__ = ['augment',
            'elastic_transform',
-           'TRANSFORMS']
+           'DEFAULT_AUGMENTATIONS']
 
 
 # Default augmentations
-TRANSFORMS = {
+DEFAULT_AUGMENTATIONS = {
     'flips': True,
     'rotation': True,
     'translation': False,
@@ -20,7 +20,7 @@ TRANSFORMS = {
 }
 
 
-def distort(image, flips=True, rotation=True, translation=True,
+def augment(image, flips=True, rotation=True, translation=True,
             scale=True, contrast=True, brightness=True):
     """Apply image augmentation
 

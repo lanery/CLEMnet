@@ -8,8 +8,7 @@ from tensorflow import keras
 import augmentations
 
 
-__all__ = ['TilePairGenerator',
-           'fetch_image_pairs']
+__all__ = ['TilePairGenerator']
 
 
 class TilePairGenerator(keras.utils.Sequence):
@@ -28,7 +27,7 @@ class TilePairGenerator(keras.utils.Sequence):
     augment : bool
         Whether to apply image augmentations
     transforms : dict
-        Mapping of transforms passed to `augmentations.distort`
+        Mapping of transforms passed to `augmentations.augment`
     """
 
     def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
@@ -37,7 +36,7 @@ class TilePairGenerator(keras.utils.Sequence):
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
         self.augment = augment
-        self.transforms = augmentations.TRANSFORMS \
+        self.transforms = augmentations.DEFAULT_AUGMENTATIONS \
                           if transforms is None else transforms        
 
     def __len__(self):
@@ -63,43 +62,43 @@ class TilePairGenerator(keras.utils.Sequence):
         return np.array(batch_EM), np.array(batch_FM)
 
 
-def fetch_image_pairs(self, fp_EM, fp_FM, augment=False):
-    """Fetch images for the data generator
+    def fetch_image_pairs(self, fp_EM, fp_FM, augment=False):
+        """Fetch images for the data generator
 
-    Parameters
-    ----------
-    fp_EM : str
-        Filepath to EM image
-    fp_FM : str
-        Filepath to FM image
-    augment : bool
-        Whether to apply image augmentation
+        Parameters
+        ----------
+        fp_EM : str
+            Filepath to EM image
+        fp_FM : str
+            Filepath to FM image
+        augment : bool
+            Whether to apply image augmentation
 
-    Returns
-    -------
-    image_EM : (M, N, 1) array
-        EM image as 16bit float
-    image_FM : (M, N, 1) array
-        FM image as 16bit float
-    """
-    image_EM = imread(fp_EM) / 255.
-    image_FM = imread(fp_FM) / 255.
+        Returns
+        -------
+        image_EM : (M, N, 1) array
+            EM image as 16bit float
+        image_FM : (M, N, 1) array
+            FM image as 16bit float
+        """
+        image_EM = imread(fp_EM) / 255.
+        image_FM = imread(fp_FM) / 255.
 
-    # Apply augmentations
-    if augment:
-        # Augmentation functions in tf.keras.preprocessing.image
-        # require 3 channel (RGB) input images
-        image = np.stack([image_EM, image_FM], axis=2)
-        image = augmentations.distort(image, **self.transforms)
-        image_EM = image[:,:,0]
-        image_FM = image[:,:,1]
+        # Apply augmentations
+        if self.augment:
+            # Augmentation functions in tf.keras.preprocessing.image
+            # require 3 channel (RGB) input images
+            image = np.stack([image_EM, image_FM], axis=2)
+            image = augmentations.augment(image, **self.transforms)
+            image_EM = image[:,:,0]
+            image_FM = image[:,:,1]
 
-    # Downscale FM (1024, 1024) --> (256, 256)
-    image_FM = downscale_local_mean(image_FM, factors=(4, 4))
+        # Downscale FM (1024, 1024) --> (256, 256)
+        image_FM = downscale_local_mean(image_FM, factors=(4, 4))
 
-    # Add dummy axis to make tensorflow happy
-    # and convert to float16 to save on memory
-    image_EM = image_EM[..., np.newaxis].astype(np.float16)
-    image_FM = image_FM[..., np.newaxis].astype(np.float16)
+        # Add dummy axis to make tensorflow happy
+        # and convert to float16 to save on memory
+        image_EM = image_EM[..., np.newaxis].astype(np.float16)
+        image_FM = image_FM[..., np.newaxis].astype(np.float16)
 
-    return image_EM, image_FM
+        return image_EM, image_FM
