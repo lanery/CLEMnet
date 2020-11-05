@@ -34,7 +34,7 @@ def colorize(image, T):
     Image array after color transformation
     """
     # Convert to rgba
-    rgba = color.grey2rgb(image, alpha=True)
+    rgba = color.gray2rgb(image, alpha=True)
     # Apply transform
     transformed = np.dot(rgba, T)
     rescaled = exposure.rescale_intensity(transformed)
