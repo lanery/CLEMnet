@@ -7,7 +7,7 @@ from tensorflow import keras
 
 
 __all__ = ['TilePairGenerator',
-           'augment']
+           'distort']
 
 # Augmentations
 AUGMENTATIONS = {
@@ -33,7 +33,10 @@ class TilePairGenerator(keras.utils.Sequence):
         List of input EM filepaths
     fps_tgt : list
         List of target FM filepaths
-    augmentations
+    augment : bool
+        Whether to apply image augmentations
+    augmentations : dict
+        Mapping of augmentations passed to `augment`
     """
 
     def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
@@ -59,38 +62,56 @@ class TilePairGenerator(keras.utils.Sequence):
         batch_EM = []
         batch_FM = []
         for fp_EM, fp_FM in zip(fps_src_batch, fps_tgt_batch):
-            image_EM, image_FM = self.fetch_image_pairs(fp_EM, fp_FM)
+            image_EM, image_FM = self.fetch_image_pairs(fp_EM, fp_FM,
+                                                        self.augment)
             batch_EM.append(image_EM)
             batch_FM.append(image_FM)
 
         return np.array(batch_EM), np.array(batch_FM)
 
-    def fetch_image_pairs(self, fp_EM, fp_FM):
-        """"""
-        image_EM = imread(fp_EM) / 255.
-        image_FM = imread(fp_FM) / 255.
+def fetch_image_pairs(self, fp_EM, fp_FM, augment=False):
+    """Fetch images for the data generator
 
-        # Apply augmentations
-        if self.augment:
-            # Augmentation functions in tf.keras.preprocessing.image
-            # require 3 channel (RGB) input images
-            image = np.stack([image_EM, image_FM], axis=2)
-            image = augment(image, **self.augmentations)
-            image_EM = image[:,:,0]
-            image_FM = image[:,:,1]
+    Parameters
+    ----------
+    fp_EM : str
+        Filepath to EM image
+    fp_FM : str
+        Filepath to FM image
+    augment : bool
+        Whether to apply image augmentation
 
-        # Downscale FM (1024, 1024) --> (256, 256)
-        image_FM = downscale_local_mean(image_FM, factors=(4, 4))
+    Returns
+    -------
+    image_EM : (M, N, 1) array
+        EM image as 16bit float
+    image_FM : (M, N, 1) array
+        FM image as 16bit float
+    """
+    image_EM = imread(fp_EM) / 255.
+    image_FM = imread(fp_FM) / 255.
 
-        # Add dummy axis to make tensorflow happy
-        # and convert to float16 to save on memory
-        image_EM = image_EM[..., np.newaxis].astype(np.float16)
-        image_FM = image_FM[..., np.newaxis].astype(np.float16)
+    # Apply augmentations
+    if augment:
+        # Augmentation functions in tf.keras.preprocessing.image
+        # require 3 channel (RGB) input images
+        image = np.stack([image_EM, image_FM], axis=2)
+        image = distort(image, **self.augmentations)
+        image_EM = image[:,:,0]
+        image_FM = image[:,:,1]
 
-        return image_EM, image_FM
+    # Downscale FM (1024, 1024) --> (256, 256)
+    image_FM = downscale_local_mean(image_FM, factors=(4, 4))
+
+    # Add dummy axis to make tensorflow happy
+    # and convert to float16 to save on memory
+    image_EM = image_EM[..., np.newaxis].astype(np.float16)
+    image_FM = image_FM[..., np.newaxis].astype(np.float16)
+
+    return image_EM, image_FM
 
 
-def augment(image, flips=True, rotation=True, translation=True,
+def distort(image, flips=True, rotation=True, translation=True,
             scale=True, contrast=True, brightness=True):
     """Apply image augmentation
 
@@ -108,28 +129,23 @@ def augment(image, flips=True, rotation=True, translation=True,
               'col_axis': 1,
               'channel_axis': 2,
               'fill_mode': 'reflect'}
-    
     # Flips
     if flips:
         image = tf.image.random_flip_left_right(image).numpy()
         image = tf.image.random_flip_up_down(image).numpy()
-
     # Rotation
     if rotation:
         image = tf.keras.preprocessing.image\
                   .random_rotation(image, rg=30, **kwargs)
-
     # Translation
     if translation:
         image = tf.keras.preprocessing.image\
                   .random_shift(image, wrg=0.2, hrg=0.2, **kwargs)
-
     # Scale
     if scale:
         kwargs['fill_mode'] = 'constant'
         image = tf.keras.preprocessing.image\
                   .random_zoom(image, zoom_range=(0.8, 1.2), **kwargs)
-
     # Contrast / brightness
     if contrast:
         image = tf.image.random_contrast(image, 0.75, 1.5).numpy()
