@@ -26,18 +26,19 @@ class TilePairGenerator(keras.utils.Sequence):
         List of target FM filepaths
     augment : bool
         Whether to apply image augmentations
-    transforms : dict
-        Mapping of transforms passed to `augmentations.augment`
+    augmentations_set : dict
+        Mapping of augmentations passed to `augmentations.augment`
     """
 
     def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
-                 transforms=None):
+                 augmentations_set=None):
         self.batch_size = batch_size
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
         self.augment = augment
-        self.transforms = augmentations.DEFAULT_AUGMENTATIONS \
-                          if transforms is None else transforms        
+        self.augmentations_set = augmentations.DEFAULT_AUGMENTATIONS \
+                                 if augmentations_set is None \
+                                 else augmentations_set        
 
     def __len__(self):
         return len(self.fps_tgt) // self.batch_size
@@ -89,7 +90,7 @@ class TilePairGenerator(keras.utils.Sequence):
             # Augmentation functions in tf.keras.preprocessing.image
             # require 3 channel (RGB) input images
             image = np.stack([image_EM, image_FM], axis=2)
-            image = augmentations.augment(image, **self.transforms)
+            image = augmentations.augment(image, **self.augmentations_set)
             image_EM = image[:,:,0]
             image_FM = image[:,:,1]
 
