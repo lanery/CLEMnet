@@ -5,7 +5,7 @@ from skimage.transform import downscale_local_mean
 import tensorflow as tf
 from tensorflow import keras
 
-import augmentations
+from . import augmentations
 
 
 __all__ = ['TilePairGenerator']
