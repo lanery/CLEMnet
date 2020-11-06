@@ -5,7 +5,7 @@ from skimage.transform import downscale_local_mean
 import tensorflow as tf
 from tensorflow import keras
 
-from . import augmentations
+from . import augnamtetion
 
 
 __all__ = ['TilePairGenerator']
@@ -31,14 +31,14 @@ class TilePairGenerator(keras.utils.Sequence):
     """
 
     def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
-                 augmentations_set=None):
+                 augmentations=None):
         self.batch_size = batch_size
         self.fps_src = fps_src
         self.fps_tgt = fps_tgt
         self.augment = augment
         self.augmentations_set = augmentations.DEFAULT_AUGMENTATIONS \
-                                 if augmentations_set is None \
-                                 else augmentations_set        
+                                 if augmentations is None \
+                                 else augmentations        
 
     def __len__(self):
         return len(self.fps_tgt) // self.batch_size
