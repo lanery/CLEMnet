@@ -23,30 +23,54 @@ def get_model(input_shape=(1024, 1024)):
     model : `keras.Model`
         The model (duh)
     """
-    inputs = layers.Input(input_shape=(*input_shape, 1))
+    # Create input layer
+    input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
+    inputs = layers.Input(shape=input_shape)
 
-    x = layers.Conv2D(32, 3, activation='relu', padding='same')(inputs)
+    x = layers.Conv2D(32, 3, strides=2, padding="same")(inputs)
     x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
 
-    for filters in [64, 128]:
+    previous_block_activation = x  # Set aside residual
 
-        x = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
+    # Downsampling arm
+    for filters in [64, 128, 256]:
+        x = layers.Activation("relu")(x)
+        x = layers.SeparableConv2D(filters, 3, padding="same")(x)
         x = layers.BatchNormalization()(x)
-        x = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.MaxPooling2D(2)(x)
 
-    for filters in [128, 64]:
-
-        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding='same')(x)
+        x = layers.Activation("relu")(x)
+        x = layers.SeparableConv2D(filters, 3, padding="same")(x)
         x = layers.BatchNormalization()(x)
-        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding='same')(x)
+
+        x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
+
+        # Project residual
+        residual = layers.Conv2D(filters, 1, strides=2, padding="same")(previous_block_activation)
+        x = layers.add([x, residual])  # Add back residual
+        previous_block_activation = x  # Set aside next residual
+
+    # Upsampling arm
+    for filters in [256, 128]:
+        x = layers.Activation("relu")(x)
+        x = layers.Conv2DTranspose(filters, 3, padding="same")(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Activation("relu")(x)
+        x = layers.Conv2DTranspose(filters, 3, padding="same")(x)
         x = layers.BatchNormalization()(x)
 
         x = layers.UpSampling2D(2)(x)
 
+        # Project residual
+        residual = layers.UpSampling2D(2)(previous_block_activation)
+        residual = layers.Conv2D(filters, 1, padding="same")(residual)
+        x = layers.add([x, residual])  # Add back residual
+        previous_block_activation = x  # Set aside next residual
+
     # Output layer
-    outputs = layers.Dense(1, activation='sigmoid')(x)
+    x = layers.Conv2D(2, 3, activation='relu', padding='same')(x)
+    outputs = layers.Conv2D(1, 1, activation='sigmoid')(x)
 
     model = keras.Model(inputs, outputs)
 
