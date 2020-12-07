@@ -7,7 +7,7 @@ from tensorflow.keras import layers
 
 
 __all__ = ['get_model',
-           'unet']
+           'get_unet']
 
 
 def get_model(input_shape=(1024, 1024)):
@@ -77,7 +77,7 @@ def get_model(input_shape=(1024, 1024)):
     return model
 
 
-def unet(input_shape=(256, 256)):
+def get_unet(input_shape=(256, 256)):
     """Convolutional network architecture for fast segmentation of images
 
     Parameters
