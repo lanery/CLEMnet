@@ -7,7 +7,8 @@ from tensorflow.keras import layers
 
 
 __all__ = ['get_model',
-           'get_unet']
+           'get_unet',
+           'get_ogish_clemnet_model']
 
 
 def get_model(input_shape=(1024, 1024)):
@@ -27,22 +28,15 @@ def get_model(input_shape=(1024, 1024)):
     input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
     inputs = layers.Input(shape=input_shape)
 
-    x = layers.Conv2D(32, 3, strides=2, padding="same")(inputs)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
+    # First block
+    x = layers.Conv2D(32, 3, strides=2, activation='relu', padding="same")(inputs)
     previous_block_activation = x  # Set aside residual
 
     # Downsampling arm
     for filters in [64, 128, 256]:
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(filters, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(filters, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
+        # Convolution and maxpooling
+        x = layers.Conv2D(filters, 3, activation='relu', padding="same")(x)
+        x = layers.Conv2D(filters, 3, activation='relu', padding="same")(x)
         x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
 
         # Project residual
@@ -52,14 +46,12 @@ def get_model(input_shape=(1024, 1024)):
 
     # Upsampling arm
     for filters in [256, 128]:
-        x = layers.Activation("relu")(x)
-        x = layers.Conv2DTranspose(filters, 3, padding="same")(x)
+        # Transpose convolution
+        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding="same")(x)
+        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding="same")(x)
         x = layers.BatchNormalization()(x)
 
-        x = layers.Activation("relu")(x)
-        x = layers.Conv2DTranspose(filters, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
+        # Upsampling
         x = layers.UpSampling2D(2)(x)
 
         # Project residual
@@ -147,12 +139,3 @@ def get_unet(input_shape=(256, 256)):
 
     return model
 
-
-def get_ogish_clemnet_model(input_shape=(1024, 1024)):
-    """
-    """
-    # Create input layer
-    input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
-    inputs = layers.Input(shape=input_shape)
-
-    return model 
