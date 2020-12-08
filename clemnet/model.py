@@ -139,3 +139,45 @@ def get_unet(input_shape=(256, 256)):
 
     return model
 
+
+def get_ogish_clemnet_model(input_shape=(1024, 1024)):
+    """
+    """
+    # Create input layer
+    input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
+    inputs = layers.Input(shape=input_shape)
+
+    # Downsampling layers
+    conv0 = keras.layers.Conv2D(32, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
+    pool0 = keras.layers.MaxPooling2D(2)(conv0)
+    conv1 = keras.layers.Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool0)
+    pool1 = keras.layers.MaxPooling2D(2)(conv1)
+    conv2 = keras.layers.Conv2D(128, 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool1)
+    pool2 = keras.layers.MaxPooling2D(2)(conv2)
+    conv3 = keras.layers.Conv2D(256, 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool2)
+    pool3 = keras.layers.MaxPooling2D(2)(conv3)
+    conv4 = keras.layers.Conv2D(512, 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool3)
+    pool4 = keras.layers.MaxPooling2D(2)(conv4)
+    conv5 = keras.layers.Conv2D(1024, 3, activation='relu', padding='same', kernel_initializer='he_normal')(pool4)
+    pool5 = keras.layers.MaxPooling2D(2)(conv5)
+    drop5 = keras.layers.Dropout(0.5)(pool5)
+
+    # Upsampling layers
+    conv6 = keras.layers.Conv2D(512, 3, activation='relu', padding='same', kernel_initializer='he_normal')(drop5)
+    up6 = keras.layers.UpSampling2D(2)(conv6)
+    merge7 = keras.layers.concatenate([conv5, up6], axis=3)
+    conv7 = keras.layers.Conv2D(256, 3, activation='relu', padding='same', kernel_initializer='he_normal')(merge7)
+    up7 = keras.layers.UpSampling2D(2)(conv7)
+    merge8 = keras.layers.concatenate([conv4, up7], axis=3)
+    conv8 = keras.layers.Conv2D(128, 3, activation='relu', padding='same', kernel_initializer='he_normal')(merge8)
+    up8 = keras.layers.UpSampling2D(2)(conv8)
+    merge9 = keras.layers.concatenate([conv3, up8], axis=3)
+    conv9 = keras.layers.Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(merge9)
+    up9 = keras.layers.UpSampling2D(2)(conv9)
+
+    # Output layer
+    conv10 = keras.layers.Conv2D(1, 1, activation= 'sigmoid')(up9)
+
+    # Build model
+    model = keras.Model(inputs=inputs, outputs=conv10)
+    return model
