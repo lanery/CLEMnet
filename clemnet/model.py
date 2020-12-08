@@ -148,13 +148,11 @@ def get_unet(input_shape=(256, 256)):
     return model
 
 
-def get_ogish_clemnet_model():
+def get_ogish_clemnet_model(input_shape=(1024, 1024)):
     """
     """
     # Create input layer
     input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
     inputs = layers.Input(shape=input_shape)
 
-    conv0 = keras.layers.Conv2D(32, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
-
-    return
+    return model 
