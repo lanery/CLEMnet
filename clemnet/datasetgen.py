@@ -3,6 +3,9 @@ import tensorflow as tf
 __all__ = ['load_images']
 
 
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+
 def load_images(fp_src, fp_tgt):
     """
     Parameters
@@ -34,3 +37,36 @@ def load_images(fp_src, fp_tgt):
                                    dtype='float32',
                                    expand_animations=False)
     return image_src, image_tgt
+
+
+def create_dataset(fps_src, fps_tgt, batch_size, shuffle=True):
+    """Create dataset from source and target filepaths
+
+    Parameters
+    ----------
+    fps_src : list-like
+        List of source filepaths for training, validation, or testing
+
+    fps_tgt : list-like
+        List of target filepaths for training, validation, or testing
+
+    Returns
+    -------
+    ds : `tf.data.Dataset`
+        Returns the (prefetched) `Dataset` object
+    """
+    # Load images
+    ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
+    ds = ds_fps.map(load_images, num_parallel_calls=AUTOTUNE)
+    # Shuffle
+    if shuffle:
+        ds = ds.shuffle(1000)
+    # Batch
+    ds = ds.batch(batch_size)
+    # Resize FM
+    ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=[256, 256])),
+                num_parallel_calls=AUTOTUNE)
+    # Convert to float16 to save on GPU RAM
+    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
+                              tf.image.convert_image_dtype(y, dtype='float16')))
+    return ds.prefetch(buffer_size=AUTOTUNE)
