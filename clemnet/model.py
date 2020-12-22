@@ -8,7 +8,7 @@ from tensorflow.keras import layers
 
 __all__ = ['get_model',
            'get_unet',
-           'get_ogish_clemnet_model']
+           'get_ogish_clemnet']
 
 
 def get_model(input_shape=(1024, 1024)):
@@ -140,7 +140,7 @@ def get_unet(input_shape=(256, 256)):
     return model
 
 
-def get_ogish_clemnet_model(input_shape=(1024, 1024)):
+def get_ogish_clemnet(input_shape=(1024, 1024)):
     """
     """
     # Create input layer

@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-__all__ = ['load_images']
+__all__ = ['load_images',
+           'create_dataset']
 
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
