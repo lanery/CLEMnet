@@ -25,7 +25,7 @@ def load_images(fp_src, fp_tgt):
 
     Notes
     -----
-    > `decod_image`
+    > `decode_image`
       * `expand_animations` is set to False so that the tensor returned
         by `decode_image` has a shape
       * automatically rescales intensity to (0, 1) range for dtype float32
