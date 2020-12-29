@@ -49,7 +49,6 @@ def get_model(input_shape=(1024, 1024)):
         # Transpose convolution
         x = layers.Conv2DTranspose(filters, 3, activation='relu', padding="same")(x)
         x = layers.Conv2DTranspose(filters, 3, activation='relu', padding="same")(x)
-        x = layers.BatchNormalization()(x)
 
         # Upsampling
         x = layers.UpSampling2D(2)(x)
