@@ -6,7 +6,9 @@ __all__ = ['colorize',
            'get_n_tensors',
            'get_max_batch_size',
            'T_HOECHST',
-           'T_INSULIN']
+           'T_INSULIN',
+           'T_TRUE',
+           'T_PRED']
 
 
 # Color transformations
