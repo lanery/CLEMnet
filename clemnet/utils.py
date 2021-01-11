@@ -7,50 +7,9 @@ __all__ = ['colorize',
            'get_max_batch_size',
            'T_HOECHST',
            'T_INSULIN',
-           'T_TRUE',
-           'T_PRED']
-
-
-# Color transformations
-T_HOECHST = [[0.2, 0.0, 0.0, 0.2],  # blue
-             [0.0, 0.2, 0.0, 0.2],
-             [0.0, 0.0, 1.0, 1.0],
-             [0.0, 0.0, 0.0, 0.0]]
-
-T_INSULIN = [[1.0, 0.0, 0.0, 1.0],  # orange
-             [0.0, 0.6, 0.0, 0.6],
-             [0.0, 0.0, 0.0, 0.0],
-             [0.0, 0.0, 0.0, 0.0]]
-
-T_TRUE = [[1.0, 0.0, 0.0, 1.0],  # red
-          [0.0, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0]]
-
-T_PRED = [[0.0, 0.0, 0.0, 0.0],  # green
-          [0.0, 1.0, 0.0, 1.0],
-          [0.0, 0.0, 0.0, 0.0],
-          [0.0, 0.0, 0.0, 0.0]]
-
-
-def colorize(image, T):
-    """Colorize image
-
-    Parameters
-    ----------
-    image : numpy array
-
-    Returns
-    -------
-    rescaled : rgba float array
-    Image array after color transformation
-    """
-    # Convert to rgba
-    rgba = color.gray2rgb(image, alpha=True)
-    # Apply transform
-    transformed = np.dot(rgba, T)
-    rescaled = exposure.rescale_intensity(transformed)
-    return rescaled
+           'T_RED',
+           'T_GREEN',
+           'T_BLUE']
 
 
 def get_n_tensors(model):
@@ -103,3 +62,49 @@ def get_max_batch_size(gpu_ram, model):
     # Calculate max batch size
     max_batch_size = (1e9*gpu_ram / 4) / (n_tensors + model.count_params())
     return max_batch_size
+
+
+def colorize(image, T):
+    """Colorize image
+
+    Parameters
+    ----------
+    image : numpy array
+
+    Returns
+    -------
+    rescaled : rgba float array
+    Image array after color transformation
+    """
+    # Convert to rgba
+    rgba = color.gray2rgb(image, alpha=True)
+    # Apply transform
+    transformed = np.dot(rgba, T)
+    rescaled = exposure.rescale_intensity(transformed)
+    return rescaled
+
+
+# Color transformations
+T_HOECHST = [[0.2, 0.0, 0.0, 0.2],  # blueish
+             [0.0, 0.2, 0.0, 0.2],
+             [0.0, 0.0, 1.0, 1.0],
+             [0.0, 0.0, 0.0, 0.0]]
+
+T_INSULIN = [[1.0, 0.0, 0.0, 1.0],  # orangeish
+             [0.0, 0.6, 0.0, 0.6],
+             [0.0, 0.0, 0.0, 0.0],
+             [0.0, 0.0, 0.0, 0.0]]
+
+# Primary colors
+T_RED = [[1.0, 0.0, 0.0, 1.0],
+         [0.0, 0.0, 0.0, 0.0],
+         [0.0, 0.0, 0.0, 0.0],
+         [0.0, 0.0, 0.0, 0.0]]
+T_GREEN = [[0.0, 0.0, 0.0, 0.0],
+           [0.0, 1.0, 0.0, 1.0],
+           [0.0, 0.0, 0.0, 0.0],
+           [0.0, 0.0, 0.0, 0.0]]
+T_BLUE = [[0.0, 0.0, 0.0, 0.0],
+          [0.0, 0.0, 0.0, 0.0],
+          [0.0, 0.0, 1.0, 1.0],
+          [0.0, 0.0, 0.0, 0.0]]
