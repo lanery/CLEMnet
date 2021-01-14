@@ -19,8 +19,13 @@ pip install git+git://github.com/lanery/CLEMnet.git
 ```
 * Create python environment
 ```
-[rlane@hpc29:~]$ conda create -n fmml_gpu tensorflow-gpu numpy scipy scikit-learn scikit-image pandas opencv jupyterlab matplotlib opencv
+[rlane@hpc29:~]$ conda create -n fmml_gpu tensorflow-gpu numpy scipy scikit-image jupyterlab matplotlib
 [rlane@hpc29:~]$ conda activate fmml_gpu
+```
+
+Other useful python packages
+```
+scikit-learn opencv pandas
 ```
 
 ### To run in a Jupyter notebook
@@ -33,7 +38,7 @@ pip install git+git://github.com/lanery/CLEMnet.git
 * Navigate to http://localhost:8893/lab and enter token
 * (Optional) environment setup for using CATMAID viewer
 ```
-(fmml_gpu) [rlane@hpc29:~]$ conda install -c conda-forge ipywidgets nodejs
+(fmml_gpu) [rlane@hpc29:~]$ conda install -c conda-forge ipywidgets ipympl nodejs
 (fmml_gpu) [rlane@hpc29:~]$ jupyter nbextension enable --py widgetsnbextension
 (fmml_gpu) [rlane@hpc29:~]$ jupyter labextension install @jupyter-widgets/jupyterlab-manager
 ```
