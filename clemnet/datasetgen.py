@@ -40,7 +40,8 @@ def load_images(fp_src, fp_tgt):
     return image_src, image_tgt
 
 
-def create_dataset(fps_src, fps_tgt, batch_size, shuffle=True):
+def create_dataset(fps_src, fps_tgt, batch_size, augment=False,
+                   shuffle=False, prefetch=False):
     """Create dataset from source and target filepaths
 
     Parameters
@@ -59,15 +60,26 @@ def create_dataset(fps_src, fps_tgt, batch_size, shuffle=True):
     # Load images
     ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
     ds = ds_fps.map(load_images, num_parallel_calls=AUTOTUNE)
+    # Resize FM
+    ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=[256, 256])),
+                num_parallel_calls=AUTOTUNE)
+
+    # Apply augmentations
+    if augment:
+        raise NotImplementedError("augmentations not yet implemented.")
+
+    # Convert to float16 to save on GPU RAM
+    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
+                              tf.image.convert_image_dtype(y, dtype='float16')))
+
     # Shuffle
     if shuffle:
         ds = ds.shuffle(1000)
     # Batch
-    ds = ds.batch(batch_size)
-    # Resize FM
-    ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=[256, 256])),
-                num_parallel_calls=AUTOTUNE)
-    # Convert to float16 to save on GPU RAM
-    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
-                              tf.image.convert_image_dtype(y, dtype='float16')))
-    return ds.prefetch(buffer_size=AUTOTUNE)
+    if batch_size:
+        ds = ds.batch(batch_size)
+    # Prefetch
+    if prefetch:
+        ds = ds.prefetch(buffer_size=AUTOTUNE)
+
+    return ds

@@ -5,8 +5,7 @@ from scipy.ndimage.filters import gaussian_filter
 import tensorflow as tf
 
 __all__ = ['augment',
-           'elastic_transform',
-           'DEFAULT_AUGMENTATIONS']
+           'elastic_transform']
 
 
 # Default augmentations
