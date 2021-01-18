@@ -1,105 +1,86 @@
-import numpy as np
-from skimage.io import imread
-from skimage.transform import downscale_local_mean
-
 import tensorflow as tf
-from tensorflow import keras
 
-from . import augnamtetion
-
-
-__all__ = ['TilePairGenerator']
+__all__ = ['load_images',
+           'create_dataset']
 
 
-class TilePairGenerator(keras.utils.Sequence):
-    """Generates batches of EM, FM tile pairs to facilitate training & testing
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+
+def load_images(fp_src, fp_tgt):
+    """
+    Parameters
+    ----------
+    fp_src : str
+        Filepath to EM image
+    fp_tgt : str
+        Filepath to corresponding FM image
+
+    Returns
+    -------
+    image_src : (M, N, 1) array
+        EM image rescaled to (1024, 1024) float16 array
+    image_tgt : (M, N, 1)
+        FM image rescaled to (256, 256) float16 array
+
+    Notes
+    -----
+    > `decode_image`
+      * `expand_animations` is set to False so that the tensor returned
+        by `decode_image` has a shape
+      * automatically rescales intensity to (0, 1) range for dtype float32
+    """
+    # Read images as float32
+    image_src = tf.io.decode_image(tf.io.read_file(fp_src),
+                                   dtype='float32',
+                                   expand_animations=False)
+    image_tgt = tf.io.decode_image(tf.io.read_file(fp_tgt),
+                                   dtype='float32',
+                                   expand_animations=False)
+    return image_src, image_tgt
+
+
+def create_dataset(fps_src, fps_tgt, batch_size, augment=False,
+                   shuffle=False, prefetch=False):
+    """Create dataset from source and target filepaths
 
     Parameters
     ----------
-    batch_size : scalar
-        Batch size
-    img_size : tuple
-        Image shape, typically (1024, 1024)
-    fps_src : list
-        List of input EM filepaths
-    fps_tgt : list
-        List of target FM filepaths
-    augment : bool
-        Whether to apply image augmentations
-    augmentations : dict
-        Mapping of augmentations passed to `augmentations.augment`
+    fps_src : list-like
+        List of source filepaths for training, validation, or testing
+
+    fps_tgt : list-like
+        List of target filepaths for training, validation, or testing
+
+    Returns
+    -------
+    ds : `tf.data.Dataset`
+        Returns the (prefetched) `Dataset` object
     """
+    # Load images
+    ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
+    ds = ds_fps.map(load_images, num_parallel_calls=AUTOTUNE)
 
-    def __init__(self, batch_size, fps_src, fps_tgt, augment=False,
-                 augmentations=None):
-        self.batch_size = batch_size
-        self.fps_src = fps_src
-        self.fps_tgt = fps_tgt
-        self.augment = augment
-        self.augmentations = augnamtetion.DEFAULT_AUGMENTATIONS \
-                                if augmentations is None \
-                                else augmentations        
+    # Apply augmentations
+    if augment:
+        raise NotImplementedError("augmentations not yet implemented.")
 
-    def __len__(self):
-        return len(self.fps_tgt) // self.batch_size
+    # Resize FM
+    ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=[256, 256])),
+                num_parallel_calls=AUTOTUNE)
 
-    def __getitem__(self, idx):
-        """Returns tuple of images (source, target) corresponding to batch index"""
-        i = idx * self.batch_size
+    # Convert to float16 to save on GPU RAM
+    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
+                              tf.image.convert_image_dtype(y, dtype='float16')))
 
-        # Get batch of EM, FM filepaths
-        fps_src_batch = self.fps_src[i: (i+self.batch_size)]
-        fps_tgt_batch = self.fps_tgt[i: (i+self.batch_size)]
+    # Shuffle
+    if shuffle:
+        ds = ds.shuffle(1000)
+    # Batch
+    if batch_size:
+        ds = ds.batch(batch_size)
+    # Prefetch
+    if prefetch:
+        ds = ds.prefetch(buffer_size=AUTOTUNE)
 
-        # Create batches of EM and FM images
-        batch_EM = []
-        batch_FM = []
-        for fp_EM, fp_FM in zip(fps_src_batch, fps_tgt_batch):
-            image_EM, image_FM = self.fetch_image_pairs(fp_EM, fp_FM,
-                                                        self.augment)
-            batch_EM.append(image_EM)
-            batch_FM.append(image_FM)
-
-        return np.array(batch_EM), np.array(batch_FM)
-
-
-    def fetch_image_pairs(self, fp_EM, fp_FM, augment=False):
-        """Fetch images for the data generator
-
-        Parameters
-        ----------
-        fp_EM : str
-            Filepath to EM image
-        fp_FM : str
-            Filepath to FM image
-        augment : bool
-            Whether to apply image augmentation
-
-        Returns
-        -------
-        image_EM : (M, N, 1) array
-            EM image as 16bit float
-        image_FM : (M, N, 1) array
-            FM image as 16bit float
-        """
-        image_EM = imread(fp_EM) / 255.
-        image_FM = imread(fp_FM) / 255.
-
-        # Apply augmentations
-        if self.augment:
-            # Augmentation functions in tf.keras.preprocessing.image
-            # require 3 channel (RGB) input images
-            image = np.stack([image_EM, image_FM], axis=2)
-            image = augnamtetion.augment(image, **self.augmentations)
-            image_EM = image[:,:,0]
-            image_FM = image[:,:,1]
-
-        # Downscale FM (1024, 1024) --> (256, 256)
-        image_FM = downscale_local_mean(image_FM, factors=(4, 4))
-
-        # Add dummy axis to make tensorflow happy
-        # and convert to float16 to save on memory
-        image_EM = image_EM[..., np.newaxis].astype(np.float16)
-        image_FM = image_FM[..., np.newaxis].astype(np.float16)
-
-        return image_EM, image_FM
+    return ds

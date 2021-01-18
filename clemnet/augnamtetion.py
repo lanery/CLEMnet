@@ -19,48 +19,65 @@ DEFAULT_AUGMENTATIONS = {
 }
 
 
-def augment(image, flips=True, rotation=True, translation=True,
-            scale=True, contrast=True, brightness=True):
-    """Apply image augmentation
+def augment(x, y, flip=0, rotation=0, translation=0,
+            crop=0, contrast=0, brightness=0, noise=0):
+    """Apply various image augmentations
 
     Parameters
     ----------
-    image : (M, N, d) array
-        Input image to be augmented
+    x : `tf.Tensor`
+        EM image tensor
+    y : `tf.Tensor`
+        FM image tensor
+    flip : scalar (0, 1)
+        Probability of applying flip augmentation
+    rotation : scalar (0, 1)
+        Probability of applying rotation augmentation
 
     Returns
     -------
     image : (M, N, d) array
         Augmented image
     """
-    kwargs = {'row_axis': 0,
-              'col_axis': 1,
-              'channel_axis': 2,
-              'fill_mode': 'reflect'}
+    # Concatenate tensors
+    xy = tf.concat([x, y], axis=2)
+
     # Flips
-    if flips:
-        image = tf.image.random_flip_left_right(image).numpy()
-        image = tf.image.random_flip_up_down(image).numpy()
+    if flip:
+        # Give a `flip`% chance of flipping in each direction
+        u = tf.random.uniform([], 0, 1, dtype=tf.float32)
+        # Probabilities on probabilities since `random_flip_`
+        # already has a built-in 50/50% chance of flipping
+        xy = tf.cond(flip > u, lambda: tf.image.random_flip_left_right(xy), lambda: xy)
+        xy = tf.cond(flip > u, lambda: tf.image.random_flip_up_down(xy), lambda: xy)
+
     # Rotation
     if rotation:
-        image = tf.keras.preprocessing.image\
-                  .random_rotation(image, rg=30, **kwargs)
-    # Translation
-    if translation:
-        image = tf.keras.preprocessing.image\
-                  .random_shift(image, wrg=0.2, hrg=0.2, **kwargs)
-    # Scale
-    if scale:
-        kwargs['fill_mode'] = 'constant'
-        image = tf.keras.preprocessing.image\
-                  .random_zoom(image, zoom_range=(0.8, 1.2), **kwargs)
-    # Contrast / brightness
-    if contrast:
-        image = tf.image.random_contrast(image, 0.75, 1.5).numpy()
-    if brightness:
-        image = tf.image.random_brightness(image, 0.2).numpy()
+        # Give a `rotation`% chance of rotating a multiple of 90degs in a random direction
+        u = tf.random.uniform([], 0, 1, dtype=tf.float32)
+        d = tf.random.uniform([], 0, 4, dtype=tf.int32)
+        xy = tf.cond(rotation > u, lambda: tf.image.rot90(xy, d), lambda: xy)
 
-    return image
+    # Crop
+    if crop:
+        # Give a `crop`% chance of cropping the image 1-20%
+        u = tf.random.uniform([], 0, 1, dtype=tf.float32)
+        xy = tf.cond(rotation > u, lambda: crop__(xy), lambda: xy)
+
+#     # Contrast / brightness
+#     if contrast:
+#         xy = tf.image.random_contrast(xy, 0.75, 1.5)
+#     if brightness:
+#         xy = tf.image.random_brightness(xy, 0.2)
+#     # Noise
+#     if noise:
+#         raise NotImplementedError("noise not implemented yet.")
+# #         xy = 
+
+    # Split back into separate tensors
+    x, y = tf.split(xy, 2, axis=2)
+
+    return x, y
 
 
 def elastic_transform(image, alpha=400, sigma=20):
