@@ -85,6 +85,9 @@ def colorize(image, T):
 
 
 # Color transformations
+# ---------------------
+
+# Labels
 T_HOECHST = [[0.2, 0.0, 0.0, 0.2],  # blueish
              [0.0, 0.2, 0.0, 0.2],
              [0.0, 0.0, 1.0, 1.0],
