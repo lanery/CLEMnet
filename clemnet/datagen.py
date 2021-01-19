@@ -1,5 +1,9 @@
 import tensorflow as tf
 
+from .augnamtetion import augment
+from .augnamtetion import DEFAULT_AUGMENTATIONS
+
+
 __all__ = ['load_images',
            'create_dataset']
 
@@ -63,7 +67,11 @@ def create_dataset(fps_src, fps_tgt, batch_size, augment=False,
 
     # Apply augmentations
     if augment:
-        raise NotImplementedError("augmentations not yet implemented.")
+        ds = ds.map(lambda x, y: augment(x, y, **DEFAULT_AUGMENTATIONS))
+
+    # Clip intensity values to 0 - 1 range
+    ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
+                              tf.clip_by_value(y, 0, 1)))
 
     # Resize FM
     ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=[256, 256])),
