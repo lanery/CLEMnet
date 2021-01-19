@@ -74,7 +74,8 @@ def create_dataset(fps_src, fps_tgt, batch_size, augment=False,
                               tf.clip_by_value(y, 0, 1)))
 
     # Resize FM
-    ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=[256, 256])),
+    ds = ds.map(lambda x, y: (tf.image.resize(x, size=[256, 256]),
+                              tf.image.resize(y, size=[256, 256])),
                 num_parallel_calls=AUTOTUNE)
 
     # Convert to float16 to save on GPU RAM
