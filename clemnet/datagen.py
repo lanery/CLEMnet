@@ -67,7 +67,8 @@ def create_dataset(fps_src, fps_tgt, batch_size, augment=False,
 
     # Apply augmentations
     if augment:
-        ds = ds.map(lambda x, y: augment(x, y, **DEFAULT_AUGMENTATIONS))
+        ds = ds.map(lambda x, y: augment(x, y, **DEFAULT_AUGMENTATIONS),
+                    num_parallel_calls=AUTOTUNE)
 
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
