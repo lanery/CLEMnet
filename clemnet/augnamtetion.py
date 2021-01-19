@@ -3,6 +3,8 @@ from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
 import tensorflow as tf
+import tensorflow_addons as tfa
+
 
 __all__ = ['augment',
            'DEFAULT_AUGMENTATIONS']
@@ -10,13 +12,13 @@ __all__ = ['augment',
 
 # Default augmentations
 DEFAULT_AUGMENTATIONS = {
-    'flip': 1,
-    'rotation': 1,
+    'flip': 0.9,
+    'rotation': 0.9,
     'crop': 0.5,
-    'contrast': 0.75,
-    'brightness': 0.75,
-    'noise': 0,
-    'elastic': 0
+    'elastic': 0.5,
+    'contrast': 0.5,
+    'brightness': 0.5,
+    'noise': 0.5,
 }
 
 
