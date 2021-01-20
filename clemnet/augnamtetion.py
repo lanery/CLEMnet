@@ -75,7 +75,7 @@ def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
         flow = tf.random.normal([1, 512, 512, 2]) * (1+2*u)
         xy_ = tf.expand_dims(xy, axis=0)
         xy = tf.cond(u > elastic, lambda: xy,
-                                  lambda: tf.squeeze(tfa.image.dense_image_warp(xy_, flow)))
+                                  lambda: tf.squeeze(tfa.image.dense_image_warp(xy_, flow), axis=0))
 
     # Split back into separate tensors for remaining augmentations
     # which are only applied to the EM images
