@@ -44,8 +44,8 @@ def load_images(fp_src, fp_tgt):
     return image_src, image_tgt
 
 
-def create_dataset(fps_src, fps_tgt, batch_size, augment=False,
-                   shuffle=False, prefetch=False):
+def create_dataset(fps_src, fps_tgt, batch_size=None, augment=False,
+                   augmentations=None, shuffle=False, prefetch=False):
     """Create dataset from source and target filepaths
 
     Parameters
