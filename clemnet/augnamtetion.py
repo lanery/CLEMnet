@@ -75,7 +75,8 @@ def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
         flow = tf.random.normal([1, 256, 256, 2]) * (1+2*u)
         xy_ = tf.expand_dims(xy, axis=0)
         xy = tf.cond(u > elastic, lambda: xy,
-                                  lambda: tf.squeeze(tfa.image.dense_image_warp(xy_, flow), axis=0))
+                                  lambda: tf.squeeze(tfa.image\
+                                            .dense_image_warp(xy_, flow), axis=0))
 
     # Split back into separate tensors for remaining augmentations
     # which are only applied to the EM images
@@ -125,7 +126,7 @@ def crop_augmentation(x):
         # Create different crops for an image
         crops = tf.image.crop_and_resize([img], boxes=boxes,
                                          box_indices=np.zeros(len(scales)),
-                                         crop_size=(512, 512))
+                                         crop_size=(256, 256))
         # Return a random crop
         return crops[tf.random.uniform([], 0, len(scales), dtype=tf.int32)]
 
