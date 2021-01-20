@@ -6,7 +6,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 
 
-__all__ = ['augment',
+__all__ = ['apply_augmentations',
            'DEFAULT_AUGMENTATIONS']
 
 
@@ -22,8 +22,8 @@ DEFAULT_AUGMENTATIONS = {
 }
 
 
-def augment(x, y, flip=0, rotation=0, translation=0, crop=0,
-            elastic=0, contrast=0, brightness=0, noise=0):
+def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
+                        elastic=0, contrast=0, brightness=0, noise=0):
     """Apply various image augmentations
 
     Parameters

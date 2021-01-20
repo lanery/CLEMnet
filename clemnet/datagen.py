@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from .augnamtetion import augment
+from .augnamtetion import apply_augmentations
 from .augnamtetion import DEFAULT_AUGMENTATIONS
 
 
