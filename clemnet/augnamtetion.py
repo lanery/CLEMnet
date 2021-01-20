@@ -97,7 +97,7 @@ def augment(x, y, flip=0, rotation=0, translation=0, crop=0,
     if noise:
         # Give a `noise`% chance of applying Poissonian noise
         u = tf.random.uniform([], 0, 1, dtype=tf.float32)
-        lam = tf.random.uniform([], 4, 8, dtype=tf.int32)
+        lam = tf.random.uniform([], 4, 8, dtype=tf.float32)
         x = tf.cond(u > noise, lambda: x,
                                lambda: tf.random.poisson([], x*lam)/lam)
 
