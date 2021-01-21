@@ -81,16 +81,16 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Shuffle
     if shuffle:
         # Choose sufficiently high buffer size for proper shuffling
-        buffer_size = len(fps_src) if buffer_size is None\
+        buffer_size = len(fps_src) if buffer_size is None \
                                    else buffer_size
         ds_fps = ds_fps.shuffle(buffer_size=buffer_size)
 
     # Repeat
     if repeat:
         # Choose a reasonable(?) number of repetitions if not provided
-        if n_repetitions is None:
-            # TODO: choose n_repetitions intelligently
-            n_repetitions = (17-6+5)//2
+        # TODO: choose n_repetitions intelligently
+        n_repetitions = (17-6+5)//2 if n_repetitions is None \
+                                    else n_repetitions
         ds_fps = ds_fps.repeat(count=n_repetitions)
 
     # Load images
@@ -99,7 +99,7 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Augment images
     if augment:
         # Use default augmentations if not provided
-        augmentations = DEFAULT_AUGMENTATIONS if augmentations is None\
+        augmentations = DEFAULT_AUGMENTATIONS if augmentations is None \
                                               else augmentations
         # Apply image augmentations
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
@@ -116,9 +116,9 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Batch
     if batch:
         # Choose a reasonable(?) batch size
-        if batch_size is None:
-            # TODO: choose batch size intelligently
-            batch_size = 16
+        # TODO: choose batch size intelligently
+        batch_size = 16 if batch_size is None \
+                        else batch_size
         ds = ds.batch(batch_size)
 
     # Prefetch
