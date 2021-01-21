@@ -50,7 +50,7 @@ def load_images(fp_src, fp_tgt):
 
 
 def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
-                   repeat=False, repetitions=None, augment=False,
+                   repeat=False, n_repetitions=None, augment=False,
                    augmentations=None, batch=False, batch_size=None,
                    prefetch=True, n_cores=None):
     """Create dataset from source and target filepaths
@@ -88,10 +88,10 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Repeat
     if repeat:
         # Choose a reasonable(?) number of repetitions if not provided
-        if repetitions is None:
-            # TODO: choose repetitions intelligently
-            repetitions = (17-6+5)//2
-        ds_fps = ds_fps.repeat(count=repetitions)
+        if n_repetitions is None:
+            # TODO: choose n_repetitions intelligently
+            n_repetitions = (17-6+5)//2
+        ds_fps = ds_fps.repeat(count=n_repetitions)
 
     # Load images
     ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
