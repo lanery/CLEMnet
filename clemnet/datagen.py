@@ -99,8 +99,8 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Augment images
     if augment:
         # Use default augmentations if not provided
-        if augmentations is None:
-            augmentations = DEFAULT_AUGMENTATIONS
+        augmentations = DEFAULT_AUGMENTATIONS if augmentations is None\
+                                              else augmentations
         # Apply image augmentations
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
                     num_parallel_calls=n_cores//2)
