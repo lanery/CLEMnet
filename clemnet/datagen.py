@@ -81,8 +81,8 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Shuffle
     if shuffle:
         # Choose sufficiently high buffer size for proper shuffling
-        if buffer_size is None:
-            buffer_size = len(fps_src)
+        buffer_size = len(fps_src) if buffer_size is None\
+                                   else buffer_size
         ds_fps = ds_fps.shuffle(buffer_size=buffer_size)
 
     # Repeat
