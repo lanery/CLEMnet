@@ -23,6 +23,10 @@ def get_model(input_shape=(1024, 1024)):
     -------
     model : `keras.Model`
         The model (duh)
+
+    References
+    ----------
+    [1] https://arxiv.org/abs/1610.02357
     """
     # Create input layer
     input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
@@ -45,7 +49,7 @@ def get_model(input_shape=(1024, 1024)):
         previous_block_activation = x  # Set aside next residual
 
     # Upsampling arm
-    for filters in [256, 128]:
+    for filters in [256, 128, 64, 32]:
         # Transpose convolution
         x = layers.Conv2DTranspose(filters, 3, activation='relu', padding="same")(x)
         x = layers.Conv2DTranspose(filters, 3, activation='relu', padding="same")(x)
