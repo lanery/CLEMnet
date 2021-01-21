@@ -52,7 +52,7 @@ def load_images(fp_src, fp_tgt):
 def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
                    repeat=False, repetitions=None, augment=False,
                    augmentations=None, batch=False, batch_size=None,
-                   prefetch=True):
+                   prefetch=True, n_cores=None):
     """Create dataset from source and target filepaths
 
     Parameters
@@ -71,6 +71,10 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     ----------
     [1] https://cs230.stanford.edu/blog/datapipeline/
     """
+    # Choose number of cores if not provided
+    if n_cores is None:
+        n_cores = AUTOTUNE
+
     # Create dataset of filepaths
     ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
 
@@ -90,7 +94,7 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
         ds_fps = ds_fps.repeat(count=repetitions)
 
     # Load images
-    ds = ds_fps.map(load_images, num_parallel_calls=AUTOTUNE)
+    ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
 
     # Augment images
     if augment:
@@ -99,7 +103,7 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
             augmentations = DEFAULT_AUGMENTATIONS
         # Apply image augmentations
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
-                    num_parallel_calls=AUTOTUNE)
+                    num_parallel_calls=n_cores//2)
 
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
