@@ -1,3 +1,4 @@
+import pandas as pd
 import tensorflow as tf
 
 from .augnamtetion import apply_augmentations
@@ -126,3 +127,54 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
         ds = ds.prefetch(buffer_size=AUTOTUNE)
 
     return ds
+
+
+def get_DataFrame(fps_src, fps_tgt):
+    """Utility function for creating a DataFrame from input filepaths
+
+    Parameters
+    ----------
+    fps_src : list-like
+        List of filepaths to source (EM) images
+    fps_tgt : list-like
+        List of filepaths to target (FM) images
+
+    Returns
+    -------
+    df : `pd.DataFrame
+        DataFrame of overlapping source (EM) and target (FM) filepaths
+
+    Notes
+    -----
+    * Depends heavily on filepaths being stored as CATMAID tiles
+      * Specifically tile source convention 1
+      * <sourceBaseUrl><pixelPosition.z>/<row>_<col>_<zoomLevel>.<fileExtension>
+      * https://catmaid.readthedocs.io/en/2018.11.09/tile_sources.html
+
+    Examples
+    --------
+    >>> data_dir = Path('/home/rlane/FMML_DATA/20200618_RL012/')
+    >>> fps_src = list(data_dir.glob('2us/lil_EM*/*/*.png'))
+    >>> fps_tgt = list(data_dir.glob('2us/hoechst*/*/*.png'))
+    >>> get_DataFrame(fps_src, fps_tgt).head(3)
+        train source        z	y	x	zoom	train target
+    0	/home/.../lil_EM...	1	0	0	3	    /home/.../hoech...
+    1	/home/.../lil_EM...	1	0	0	4	    /home/.../hoech...
+    2	/home/.../lil_EM...	1	0	0	5	    /home/.../hoech...
+    """
+    # EM (source) images
+    df_EM = pd.DataFrame({'train source': fps_src})
+    df_EM['z'] = df_EM['train source'].apply(lambda x: int(x.parent.name))
+    df_EM[['y', 'x', 'zoom']] = df_EM['train source'].apply(lambda x: x.stem.split('_')).tolist()
+    df_EM['train source'] = df_EM['train source'].apply(lambda x: x.as_posix())
+
+    # FM (target) images
+    df_FM = pd.DataFrame({'train target': fps_tgt})
+    df_FM['z'] = df_FM['train target'].apply(lambda x: int(x.parent.name))
+    df_FM[['y', 'x', 'zoom']] = df_FM['train target'].apply(lambda x: x.stem.split('_')).tolist()
+    df_FM['train target'] = df_FM['train target'].apply(lambda x: x.as_posix())
+
+    # Remove EM images with no corresponding FM (and vice versa) via merge
+    df = pd.merge(df_EM, df_FM, how='inner').astype(int, errors='ignore')
+
+    return df
