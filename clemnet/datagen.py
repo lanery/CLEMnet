@@ -6,7 +6,8 @@ from .augnamtetion import DEFAULT_AUGMENTATIONS
 
 
 __all__ = ['load_images',
-           'create_dataset']
+           'create_dataset',
+           'get_DataFrame']
 
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
@@ -176,5 +177,4 @@ def get_DataFrame(fps_src, fps_tgt):
 
     # Remove EM images with no corresponding FM (and vice versa) via merge
     df = pd.merge(df_EM, df_FM, how='inner').astype(int, errors='ignore')
-
     return df
