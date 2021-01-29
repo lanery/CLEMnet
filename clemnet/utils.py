@@ -94,7 +94,10 @@ def parse_tensorboard_logs(log_dir):
     for fp_run in log_dir.glob('[!.]*'):
         # Either '../train' or '../validation'
         for fp_trnval in fp_run.glob('*'):
-            fp_event = list(fp_trnval.glob('*.v2'))[0]
+            try:  # perhaps training didn't complete? \_0_/
+                fp_event = list(fp_trnval.glob('*.v2'))[0]
+            except IndexError as err:
+                continue
             events = EventAccumulator(fp_event.as_posix()).Reload()
             # Loop through recorded events
             # e.g. ['epoch_loss', 'epoch_accuracy', 'epoch_pearson']
