@@ -11,7 +11,7 @@ __all__ = ['get_model',
            'get_ogish_clemnet']
 
 
-def get_model(input_shape=(1024, 1024)):
+def get_model(input_shape=(256, 256)):
     """U-net-like convolutional neural network
 
     Parameters
@@ -26,48 +26,63 @@ def get_model(input_shape=(1024, 1024)):
 
     References
     ----------
-    [1] https://arxiv.org/abs/1610.02357
+    [1] U-Net: Convolutional Networks for Biomedical Image Segmentation
+        https://arxiv.org/abs/1505.04597
+    [2] Adapted from
+        https://github.com/zhixuhao/unet/blob/master/model.py
     """
     # Create input layer
     input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
     inputs = layers.Input(shape=input_shape)
 
-    # First block
-    x = layers.Conv2D(32, 3, strides=2, activation='relu', padding='same')(inputs)
-    previous_block_activation = x  # Set aside residual
+    # Set up keyword arguments for convolutional layers
+    kwargs = {
+        'activation': 'relu',
+        'padding': 'same',
+        'kernel_initializer': 'he_normal'
+    }
 
     # Downsampling arm
-    for filters in [64, 128, 256]:
-        # Convolution and maxpooling
-        x = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
-        x = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
-        x = layers.MaxPooling2D(3, strides=2, padding='same')(x)
-
-        # Project residual
-        residual = layers.Conv2D(filters, 1, strides=2, padding='same')(previous_block_activation)
-        x = layers.add([x, residual])  # Add back residual
-        previous_block_activation = x  # Set aside next residual
+    # ----------------
+    # Block 1
+    conv1 = layers.Conv2D(64, 3, **kwargs)(inputs)
+    conv1 = layers.Conv2D(64, 3, **kwargs)(conv1)
+    pool1 = layers.MaxPooling2D(2)(conv1)
+    # Block 2
+    conv2 = layers.Conv2D(128, 3, **kwargs)(pool1)
+    conv2 = layers.Conv2D(128, 3, **kwargs)(conv2)
+    pool2 = layers.MaxPooling2D(2)(conv2)
+    # Block 3
+    conv3 = layers.Conv2D(256, 3, **kwargs)(pool2)
+    conv3 = layers.Conv2D(256, 3, **kwargs)(conv3)
+    pool3 = layers.MaxPooling2D(2)(conv3)
+    # Block 4
+    conv4 = layers.Conv2D(512, 3, **kwargs)(pool3)
+    conv4 = layers.Conv2D(512, 3, **kwargs)(conv4)
+    drop4 = layers.Dropout(0.5)(conv4)
+    pool4 = layers.MaxPooling2D(2)(drop4)
+    # Block 5 (bottom of the U)
+    conv5 = layers.Conv2D(1024, 3, **kwargs)(pool4)
+    conv5 = layers.Conv2D(1024, 3, **kwargs)(conv5)
+    drop5 = layers.Dropout(0.5)(conv5)
 
     # Upsampling arm
-    for filters in [256, 128, 64, 32]:
-        # Transpose convolution
-        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding='same')(x)
-        x = layers.Conv2DTranspose(filters, 3, activation='relu', padding='same')(x)
-
-        # Upsampling
-        x = layers.UpSampling2D(2)(x)
-
-        # Project residual
-        residual = layers.UpSampling2D(2)(previous_block_activation)
-        residual = layers.Conv2D(filters, 1, padding='same')(residual)
-        x = layers.add([x, residual])  # Add back residual
-        previous_block_activation = x  # Set aside next residual
+    # --------------
+    # Block 6
+    up6 = layers.Conv2D(512, 3, **kwargs)(layers.UpSampling2D(2)(drop5))
+    merge6 = layers.concatenate([drop4, up6], axis=3)
+    conv6 = layers.Conv2D(512, 3, **kwargs)(merge6)
+    conv6 = layers.Conv2D(512, 3, **kwargs)(conv6)
+    # Block 7
+    up7 = layers.Conv2D(256, 3, **kwargs)(layers.UpSampling2D(2)(conv6))
+    merge7 = layers.concatenate([conv3, up7], axis=3)
+    conv7 = layers.Conv2D(256, 3, **kwargs)(merge7)
+    conv7 = layers.Conv2D(256, 3, **kwargs)(conv7)
+    conv7 = layers.Conv2D(2, 3, **kwargs)(conv7)
 
     # Output layer
-    x = layers.Conv2D(2, 3, activation='relu', padding='same')(x)
-    outputs = layers.Conv2D(1, 1, activation='sigmoid')(x)
-
-    model = keras.Model(inputs, outputs)
+    conv9 = layers.Conv2D(1, 1, activation='sigmoid')(conv8)
+    model = keras.Model(inputs=inputs, outputs=conv9)
 
     return model
 
