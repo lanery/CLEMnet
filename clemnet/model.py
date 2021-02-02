@@ -81,8 +81,8 @@ def get_model(input_shape=(256, 256)):
     conv7 = layers.Conv2D(2, 3, **kwargs)(conv7)
 
     # Output layer
-    conv9 = layers.Conv2D(1, 1, activation='sigmoid')(conv8)
-    model = keras.Model(inputs=inputs, outputs=conv9)
+    conv8 = layers.Conv2D(1, 1, activation='sigmoid')(conv7)
+    model = keras.Model(inputs=inputs, outputs=conv8)
 
     return model
 
