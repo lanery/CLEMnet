@@ -43,7 +43,6 @@ def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
     image_tgt = tf.io.decode_image(tf.io.read_file(fp_tgt),
                                    dtype='float32',
                                    expand_animations=False)
-
     return image_src, image_tgt
 
 
@@ -124,6 +123,9 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
         shape_tgt = [256, 256] if shape_tgt is None else shape_tgt
         ds = ds.map(lambda x, y: (tf.image.resize(x, size=shape_src),
                                   tf.image.resize(y, size=shape_tgt)))
+    else:  # resize both EM and FM to (256, 256) by default
+        ds = ds.map(lambda x, y: (tf.image.resize(x, size=[256, 256]),
+                                  tf.image.resize(y, size=[256, 256])))
 
     # Augment images
     if augment:
