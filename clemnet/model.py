@@ -8,7 +8,8 @@ from tensorflow.keras import layers
 
 __all__ = ['get_model',
            'get_unet',
-           'get_ogish_clemnet']
+           'get_ogish_clemnet',
+           'get_dummy']
 
 
 def get_model(input_shape=(256, 256)):
@@ -69,14 +70,14 @@ def get_model(input_shape=(256, 256)):
     # Upsampling arm
     # --------------
     # Block 6
-    up6 = layers.Conv2D(512, 3, **kwargs)(layers.UpSampling2D(2)(drop5))
-    merge6 = layers.concatenate([drop4, up6], axis=3)
-    conv6 = layers.Conv2D(512, 3, **kwargs)(merge6)
+    uppp6 = layers.Conv2D(512, 3, **kwargs)(layers.UpSampling2D(2)(drop5))
+    merg6 = layers.concatenate([drop4, uppp6], axis=3)
+    conv6 = layers.Conv2D(512, 3, **kwargs)(merg6)
     conv6 = layers.Conv2D(512, 3, **kwargs)(conv6)
     # Block 7
-    up7 = layers.Conv2D(256, 3, **kwargs)(layers.UpSampling2D(2)(conv6))
-    merge7 = layers.concatenate([conv3, up7], axis=3)
-    conv7 = layers.Conv2D(256, 3, **kwargs)(merge7)
+    uppp7 = layers.Conv2D(256, 3, **kwargs)(layers.UpSampling2D(2)(conv6))
+    merg7 = layers.concatenate([conv3, uppp7], axis=3)
+    conv7 = layers.Conv2D(256, 3, **kwargs)(merg7)
     conv7 = layers.Conv2D(256, 3, **kwargs)(conv7)
     conv7 = layers.Conv2D(2, 3, **kwargs)(conv7)
 
@@ -212,4 +213,71 @@ def get_ogish_clemnet(input_shape=(1024, 1024)):
 
     # Build model
     model = keras.Model(inputs=inputs, outputs=conv10)
+    return model
+
+
+def get_dummy(input_shape=(256, 256), filter_depth=3, seed=123):
+    """Dummy U-net-like convolutional neural network for testing purposes
+
+    Parameters
+    ----------
+    input_shape : tuple
+        Shape of input image data
+
+    Returns
+    -------
+    model : `keras.Model`
+        The model (duh)
+    """
+    # Model setup
+    # -----------
+    # Create input layer
+    input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
+    inputs = layers.Input(shape=input_shape)
+    # Keyword arguments for convolutional layers
+    ki = keras.initializers.he_normal(seed=seed)
+    kwargs = {
+        'activation': 'relu',
+        'padding': 'same',
+        'kernel_initializer': ki
+    }
+    # Filters
+    filters = [2**(5+n) for n in range(filter_depth)]
+
+    # Entry block
+    # -----------
+    x = layers.Conv2D(16, 3, **kwargs)(inputs)
+    previous_block_activation = x  # Set aside residual
+
+    # Downsampling arm
+    # ----------------
+    for f in filters:
+        # Convolution
+        x = layers.Conv2D(f, 3, **kwargs)(x)
+        x = layers.Conv2D(f, 3, **kwargs)(x)
+        x = layers.MaxPooling2D(2)(x)
+
+        # Project residual
+        residual = layers.Conv2D(f, 1, strides=2, kernel_initializer=ki)(previous_block_activation)
+        x = layers.add([x, residual])  # Add back residual
+        previous_block_activation = x  # Set aside next residual
+
+    # Upsampling arm
+    # --------------
+    for filters in filters[::-1]:
+        x = layers.Conv2D(f, 3, **kwargs)(x)
+        x = layers.Conv2D(f, 3, **kwargs)(x)
+        x = layers.UpSampling2D(2)(x)
+
+        # Project residual
+        residual = layers.UpSampling2D(2)(previous_block_activation)
+        residual = layers.Conv2D(f, 1, kernel_initializer=ki)(residual)
+        x = layers.add([x, residual])  # Add back residual
+        previous_block_activation = x  # Set aside next residual
+
+    # Output per-pixel classification layer
+    outputs = layers.Conv2D(1, 1, activation='sigmoid', kernel_initializer=ki)(x)
+
+    # Define the model
+    model = keras.Model(inputs, outputs)
     return model
