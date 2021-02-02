@@ -13,7 +13,7 @@ __all__ = ['load_images',
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
-def load_images(fp_src, fp_tgt):
+def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
     """
     Parameters
     ----------
@@ -25,9 +25,9 @@ def load_images(fp_src, fp_tgt):
     Returns
     -------
     image_src : (M, N, 1) array
-        EM image rescaled to (1024, 1024) float16 array
+        EM image rescaled to `shape_src` float16 array
     image_tgt : (M, N, 1)
-        FM image rescaled to (256, 256) float16 array
+        FM image rescaled to `shape_tgt` float16 array
 
     Notes
     -----
@@ -44,17 +44,13 @@ def load_images(fp_src, fp_tgt):
                                    dtype='float32',
                                    expand_animations=False)
 
-    # Resize images to (256, 256)
-    image_src = tf.image.resize(image_src, size=[256, 256])
-    image_tgt = tf.image.resize(image_tgt, size=[256, 256])
-
     return image_src, image_tgt
 
 
 def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
                    repeat=False, n_repetitions=None, augment=False,
-                   augmentations=None, batch=False, batch_size=None,
-                   prefetch=True, n_cores=None):
+                   augmentations=None, shape_src=None, shape_tgt=None,
+                   batch=False, batch_size=None, prefetch=True, n_cores=None):
     """Create dataset from source and target filepaths
 
     Parameters
@@ -63,6 +59,30 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
         List of source filepaths for training, validation, or testing
     fps_tgt : list-like
         List of target filepaths for training, validation, or testing
+    shuffle : bool (optional)
+        Whether to shuffle dataset
+    buffer_size : scalar (optional)
+        Buffer size for shuffling
+    repeat : bool (optional)
+        Whether to repeat dataset
+    n_repetitions : scalar (optional)
+        Number of repetitions
+    augment : bool
+        Whether to augment image data
+    augmentations : dict
+        Mapping of augmentations to apply
+    shape_src : tuple
+        Shape to resize source images to
+    shape_tgt : tuple
+        Shape to resize target images to
+    batch : bool (optional)
+        Whether to batch dataset
+    batch_size : scalar (optional)
+        Batch size
+    prefetch : bool (optional)
+        Whether to prefetch dataset (pre-load into GPU RAM)
+    n_cores : scalar (optional)
+        Number of cores to give to tensorflow tasks
 
     Returns
     -------
@@ -97,6 +117,13 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
 
     # Load images
     ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
+
+    # Resize
+    if shape_src or shape_tgt:
+        shape_src = [256, 256] if shape_src is None else shape_src
+        shape_tgt = [256, 256] if shape_tgt is None else shape_tgt
+        ds = ds.map(lambda x, y: (tf.image.resize(x, size=shape_src),
+                                  tf.image.resize(y, size=shape_tgt)))
 
     # Augment images
     if augment:
