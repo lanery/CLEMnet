@@ -11,7 +11,7 @@ __all__ = ['get_model',
            'get_ogish_clemnet']
 
 
-def get_model(input_shape=(256, 256), kernel_initializer=None):
+def get_model(input_shape=(256, 256)):
     """U-net-like convolutional neural network
 
     Parameters
@@ -36,12 +36,10 @@ def get_model(input_shape=(256, 256), kernel_initializer=None):
     inputs = layers.Input(shape=input_shape)
 
     # Set up keyword arguments for convolutional layers
-    ki = 'he_normal' if kernel_initializer is None \
-                                           else kernel_initializer
     kwargs = {
         'activation': 'relu',
         'padding': 'same',
-        'kernel_initializer': ki
+        'kernel_initializer': 'he_normal'
     }
 
     # Downsampling arm
@@ -61,12 +59,12 @@ def get_model(input_shape=(256, 256), kernel_initializer=None):
     # Block 4
     conv4 = layers.Conv2D(512, 3, **kwargs)(pool3)
     conv4 = layers.Conv2D(512, 3, **kwargs)(conv4)
-    drop4 = layers.Dropout(0.5, seed=345)(conv4)
+    drop4 = layers.Dropout(0.5)(conv4)
     pool4 = layers.MaxPooling2D(2)(drop4)
     # Block 5 (bottom of the U)
     conv5 = layers.Conv2D(1024, 3, **kwargs)(pool4)
     conv5 = layers.Conv2D(1024, 3, **kwargs)(conv5)
-    drop5 = layers.Dropout(0.5, seed=345)(conv5)
+    drop5 = layers.Dropout(0.5)(conv5)
 
     # Upsampling arm
     # --------------
