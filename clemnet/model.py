@@ -11,7 +11,7 @@ __all__ = ['get_model',
            'get_ogish_clemnet']
 
 
-def get_model(input_shape=(256, 256)):
+def get_model(input_shape=(256, 256), kernel_initializer=None):
     """U-net-like convolutional neural network
 
     Parameters
@@ -36,10 +36,12 @@ def get_model(input_shape=(256, 256)):
     inputs = layers.Input(shape=input_shape)
 
     # Set up keyword arguments for convolutional layers
+    ki = 'he_normal' if kernel_initializer is None \
+                                           else kernel_initializer
     kwargs = {
         'activation': 'relu',
         'padding': 'same',
-        'kernel_initializer': 'he_normal'
+        'kernel_initializer': ki
     }
 
     # Downsampling arm
