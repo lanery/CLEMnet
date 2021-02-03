@@ -72,7 +72,7 @@ def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
     if elastic:
         # Give an `elastic`% chance of applying an elastic deformation
         u = tf.random.uniform([], 0, 1, dtype=tf.float32)
-        flow = tf.random.normal([1, 256, 256, 2]) * (1+2*u)
+        flow = tf.random.normal([1, *xy.shape[:2], 2]) * (1+2*u)
         xy_ = tf.expand_dims(xy, axis=0)
         xy = tf.cond(u > elastic, lambda: xy,
                                   lambda: tf.squeeze(tfa.image\
