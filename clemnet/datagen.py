@@ -117,6 +117,15 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     # Load images
     ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
 
+    # Augment images
+    if augment:
+        # Use default augmentations if not provided
+        augmentations = DEFAULT_AUGMENTATIONS if augmentations is None \
+                                              else augmentations
+        # Apply image augmentations
+        ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
+                    num_parallel_calls=n_cores//2)
+
     # Resize
     if shape_src or shape_tgt:
         shape_src = [256, 256] if shape_src is None else shape_src
@@ -126,15 +135,6 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     else:  # resize both EM and FM to (256, 256) by default
         ds = ds.map(lambda x, y: (tf.image.resize(x, size=[256, 256]),
                                   tf.image.resize(y, size=[256, 256])))
-
-    # Augment images
-    if augment:
-        # Use default augmentations if not provided
-        augmentations = DEFAULT_AUGMENTATIONS if augmentations is None \
-                                              else augmentations
-        # Apply image augmentations
-        ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
-                    num_parallel_calls=n_cores//2)
 
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
