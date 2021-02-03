@@ -43,6 +43,11 @@ def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
     image_tgt = tf.io.decode_image(tf.io.read_file(fp_tgt),
                                    dtype='float32',
                                    expand_animations=False)
+
+    # Resize images to (256, 256)
+    image_src = tf.image.resize(image_src, size=[256, 256])	
+    image_tgt = tf.image.resize(image_tgt, size=[256, 256])
+
     return image_src, image_tgt
 
 
@@ -126,15 +131,12 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
                     num_parallel_calls=n_cores//2)
 
-    # Resize
+    # Resize images
     if shape_src or shape_tgt:
         shape_src = [256, 256] if shape_src is None else shape_src
         shape_tgt = [256, 256] if shape_tgt is None else shape_tgt
         ds = ds.map(lambda x, y: (tf.image.resize(x, size=shape_src),
                                   tf.image.resize(y, size=shape_tgt)))
-    else:  # resize both EM and FM to (256, 256) by default
-        ds = ds.map(lambda x, y: (tf.image.resize(x, size=[256, 256]),
-                                  tf.image.resize(y, size=[256, 256])))
 
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
