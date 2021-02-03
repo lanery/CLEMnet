@@ -25,9 +25,9 @@ def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
     Returns
     -------
     image_src : (M, N, 1) array
-        EM image rescaled to `shape_src` float8 array
+        EM image rescaled to `shape_src` float16 array
     image_tgt : (M, N, 1)
-        FM image rescaled to `shape_tgt` float8 array
+        FM image rescaled to `shape_tgt` float16 array
 
     Notes
     -----
@@ -140,9 +140,9 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
                               tf.clip_by_value(y, 0, 1)))
 
-    # Convert to float8 to save on GPU RAM
-    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float8'),
-                              tf.image.convert_image_dtype(y, dtype='float8')))
+    # Convert to float16 to save on GPU RAM
+    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
+                              tf.image.convert_image_dtype(y, dtype='float16')))
 
     # Batch
     if batch:
