@@ -8,6 +8,7 @@ def pearson(X, Y):
     x0 = X - K.mean(X)
     y0 = Y - K.mean(Y)
     r = K.sum(x0*y0) / K.sqrt(K.sum(x0**2) * K.sum(y0**2))
+    return r
 
 
 # def acc_pred(y_true, y_pred):
