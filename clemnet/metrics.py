@@ -6,18 +6,18 @@ from tensorflow.python.keras import backend as K
 
 
 __all__ = [
-    'accuracy'
-    'accuracy_tf'
-    'PCC'
-    'PCC_tf'
-    'MCC'
-    'ICQ'
-    'ICQ_tf'
-    'spearman'
-    'overlap'
-    'intersection'
-    'threshold'
-    'costes'
+    'accuracy',
+    'accuracy_tf',
+    'PCC',
+    'PCC_tf',
+    'MCC',
+    'ICQ',
+    'ICQ_tf',
+    'spearman',
+    'overlap',
+    'intersection',
+    'threshold',
+    'costes',
 ]
 
 
