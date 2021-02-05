@@ -5,10 +5,20 @@ from skimage.filters import threshold_otsu
 from tensorflow.python.keras import backend as K
 
 
-__all__ = ['accuracy',
-           'accuracy_tf',
-           'MCC',
-           'costes']
+__all__ = [
+    'accuracy'
+    'accuracy_tf'
+    'PCC'
+    'PCC_tf'
+    'MCC'
+    'ICQ'
+    'ICQ_tf'
+    'spearman'
+    'overlap'
+    'intersection'
+    'threshold'
+    'costes'
+]
 
 
 def accuracy(X, Y):
