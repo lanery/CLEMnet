@@ -124,6 +124,15 @@ def parse_tensorboard_logs(log_dir):
     return df
 
 
+def histogram2d(X, Y, bins=64, **kwargs):
+    """Wrapper for np.histogram2d to return bin centers"""
+    H, x_edges, y_edges = np.histogram2d(X.ravel(), Y.ravel(),
+                                         bins=bins, **kwargs)
+    x_centers = (x_edges[1:] + x_edges[:-1]) / 2
+    y_centers = (y_edges[1:] + y_edges[:-1]) / 2
+    return H, x_centers, y_centers
+
+
 def colorize(image, T):
     """Colorize image
 
