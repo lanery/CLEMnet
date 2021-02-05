@@ -96,7 +96,7 @@ def parse_tensorboard_logs(log_dir):
         for fp_trnval in fp_run.glob('*'):
             try:  # perhaps training didn't complete? \_0_/
                 fp_event = list(fp_trnval.glob('*.v2'))[0]
-            except IndexError as err:
+            except IndexError:
                 continue
             events = EventAccumulator(fp_event.as_posix()).Reload()
             # Loop through recorded events
@@ -138,12 +138,12 @@ def colorize(image, T):
 
     Parameters
     ----------
-    image : numpy array
+    image : (M, N) array
 
     Returns
     -------
     rescaled : rgba float array
-    Image array after color transformation
+        Color transformed image
     """
     # Convert to rgba
     rgba = color.gray2rgb(image, alpha=True)
