@@ -9,7 +9,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 __all__ = ['get_n_tensors',
            'get_max_batch_size',
            'parse_tensorboard_logs',
-           'histogram2d'
+           'histogram2d',
            'colorize',
            'T_HOECHST',
            'T_INSULIN',
