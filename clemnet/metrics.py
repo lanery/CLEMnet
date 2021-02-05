@@ -112,8 +112,11 @@ def threshold(X, Y, method=None, c_val=0):
     if method == 'costes':
         Tx, Ty = costes(X, Y)
     elif method == 'otsu':
-        Tx = threshold_otsu(X)
-        Ty = threshold_otsu(Y)
+        try:  # Otsu errors out if monochromatic (e.g. all 0's)
+            Tx = threshold_otsu(X)
+            Ty = threshold_otsu(Y)
+        except ValueError:
+            Tx, Ty = 0, 0
     elif method == 'constant':
         # Allow for independent threshold values
         if hasattr(c_val, '__len__'):
