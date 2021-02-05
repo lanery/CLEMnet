@@ -98,8 +98,11 @@ def overlap(X, Y, thresholding=None):
 def intersection(X, Y, thresholding=None):
     # Apply thresholding
     X, Y = threshold(X, Y, method=thresholding)
+    # Threshold to 0 or 1
+    Xt = np.where(X > 0, 1, 0)
+    Yt = np.where(Y > 0, 1, 0)
     # Calculate intersection coefficient
-    i = (X*Y).sum() / (X.sum() + Y.sum() - (X*Y).sum())
+    i = (Xt*Yt).sum() / (Xt.sum() + Yt.sum() - (Xt*Yt).sum())
     return i
 
 
