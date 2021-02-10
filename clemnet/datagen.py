@@ -87,13 +87,13 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
         Whether to repeat dataset
     n_repetitions : scalar (optional)
         Number of repetitions
-    augment : bool
+    augment : bool (optional)
         Whether to augment image data
-    augmentations : dict
+    augmentations : dict (optional)
         Mapping of augmentations to apply
-    shape_src : tuple
+    shape_src : tuple (optional)
         Shape to resize source images to
-    shape_tgt : tuple
+    shape_tgt : tuple (optional)
         Shape to resize target images to
     batch : bool (optional)
         Whether to batch dataset
@@ -107,7 +107,7 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
     Returns
     -------
     ds : `tf.data.Dataset`
-        Returns the (prefetched) `Dataset` object
+        Returns the (prefetched) `tf.data.Dataset` object
 
     References
     ----------
@@ -141,52 +141,59 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
     # Load images
     ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
 
+    # Process dataset either as lonely (single channel) or
+    #                           correlative (multichannel)
+    process_args = [augment, augmentations, shape_src, shape_tgt, n_cores]
+    if fps_src is None:
+        ds = process_lonely_dataset(fps_src, *process_args)
+    else:
+        ds = process_correlative_dataset(fps_src, fps_tgt, *process_args)
+
+    # Batch
+    if batch:
+        # Choose a reasonable(?) batch size
+        # TODO: choose batch size intelligently
+        batch_size = 16 if batch_size is None \
+                        else batch_size
+        ds = ds.batch(batch_size)
+
+    # Prefetch
+    if prefetch:
+        ds = ds.prefetch(buffer_size=AUTOTUNE)
+
     return ds
 
-
-
-
-    # if fps_tgt is None:
-    #     return create_lonely_dataset()
-    # else:
-    #     return create_correlative_dataset(
-    #         fps_src, fps_tgt,
-    #         shuffle=shuffle, buffer_size=buffer_size,
-    #         repeat=repeat, n_repetitions=n_repetitions,
-    #         augment=augment, augmentations=augmentations,
-    #         shape_src=shape_src, shape_tgt=shape_tgt,
-    #         batch=batch, batch_size=batch_size,
-    #         prefetch=prefetch, n_cores=n_cores)
-
-def create_correlative_dataset(fps_src, fps_tgt, shuffle, buffer_size,
-                               repeat, n_repetitions, augment, augmentations,
-                               shape_src, shape_tgt, batch, batch_size,
-                               prefetch, n_cores):
-    """Create dataset of correlative EM and FM image pairs"""
+def process_lonely_dataset(fps_src, augment, augmentations,
+                           shape_src, shape_tgt, n_cores):
+    """Create dataset of single channel EM or FM images"""
     # Choose number of cores if not provided
     if n_cores is None:
         n_cores = AUTOTUNE
 
-    # Create dataset of filepaths
-    ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
+    # Augment images
+    if augment:
+        raise NotImplementedError("Augmentations not (yet) possible "
+                                  "with EM only dataset.")
 
-    # Shuffle
-    if shuffle:
-        # Choose sufficiently high buffer size for proper shuffling
-        buffer_size = len(fps_src) if buffer_size is None \
-                                   else buffer_size
-        ds_fps = ds_fps.shuffle(buffer_size=buffer_size)
+    # Resize images
+    if shape_src:
+        shape_src = [256, 256] if shape_src is None else shape_src
+        ds = ds.map(lambda x: tf.image.resize(x, size=shape_src))
 
-    # Repeat
-    if repeat:
-        # Choose a reasonable(?) number of repetitions if not provided
-        # TODO: choose n_repetitions intelligently
-        n_repetitions = (17-6+5)//2 if n_repetitions is None \
-                                    else n_repetitions
-        ds_fps = ds_fps.repeat(count=n_repetitions)
+    # Clip intensity values to 0 - 1 range
+    ds = ds.map(lambda x: tf.clip_by_value(x, 0, 1))
 
-    # Load images
-    ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
+    # Convert to float16 to save on GPU RAM
+    ds = ds.map(lambda x: tf.image.convert_image_dtype(x, dtype='float16'))
+
+    return ds
+
+def process_correlative_dataset(fps_src, fps_tgt, augment, augmentations,
+                                shape_src, shape_tgt, n_cores):
+    """Process dataset of correlative EM and FM image pairs"""
+    # Choose number of cores if not provided
+    if n_cores is None:
+        n_cores = AUTOTUNE
 
     # Augment images
     if augment:
@@ -211,83 +218,6 @@ def create_correlative_dataset(fps_src, fps_tgt, shuffle, buffer_size,
     # Convert to float16 to save on GPU RAM
     ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
                               tf.image.convert_image_dtype(y, dtype='float16')))
-
-    # Batch
-    if batch:
-        # Choose a reasonable(?) batch size
-        # TODO: choose batch size intelligently
-        batch_size = 16 if batch_size is None \
-                        else batch_size
-        ds = ds.batch(batch_size)
-
-    # Prefetch
-    if prefetch:
-        ds = ds.prefetch(buffer_size=AUTOTUNE)
-
-    return ds
-
-
-def create_lonely_dataset(fps_src, fps_tgt, shuffle, buffer_size,
-                          repeat, n_repetitions, augment, augmentations,
-                          shape_src, shape_tgt, batch, batch_size,
-                          prefetch, n_cores):
-    """Create dataset of single channel EM or FM images"""
-    # Choose number of cores if not provided
-    if n_cores is None:
-        n_cores = AUTOTUNE
-
-    # Create dataset of filepaths
-    ds_fps = tf.data.Dataset.from_tensor_slices(fps_src)
-
-    # Shuffle
-    if shuffle:
-        # Choose sufficiently high buffer size for proper shuffling
-        buffer_size = len(fps_src) if buffer_size is None \
-                                   else buffer_size
-        ds_fps = ds_fps.shuffle(buffer_size=buffer_size)
-
-    # Repeat
-    if repeat:
-        # Choose a reasonable(?) number of repetitions if not provided
-        # TODO: choose n_repetitions intelligently
-        n_repetitions = (17-6+5)//2 if n_repetitions is None \
-                                    else n_repetitions
-        ds_fps = ds_fps.repeat(count=n_repetitions)
-
-    # Load images
-    ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
-
-    # Augment images
-    if augment:
-        raise NotImplementedError("Augmentations not (yet) possible "
-                                  "with EM only dataset.")
-
-    # Resize images
-    if shape_src or shape_tgt:
-        shape_src = [256, 256] if shape_src is None else shape_src
-        shape_tgt = [256, 256] if shape_tgt is None else shape_tgt
-        ds = ds.map(lambda x, y: (tf.image.resize(x, size=shape_src),
-                                  tf.image.resize(y, size=shape_tgt)))
-
-    # Clip intensity values to 0 - 1 range
-    ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
-                              tf.clip_by_value(y, 0, 1)))
-
-    # Convert to float16 to save on GPU RAM
-    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
-                              tf.image.convert_image_dtype(y, dtype='float16')))
-
-    # Batch
-    if batch:
-        # Choose a reasonable(?) batch size
-        # TODO: choose batch size intelligently
-        batch_size = 16 if batch_size is None \
-                        else batch_size
-        ds = ds.batch(batch_size)
-
-    # Prefetch
-    if prefetch:
-        ds = ds.prefetch(buffer_size=AUTOTUNE)
 
     return ds
 
