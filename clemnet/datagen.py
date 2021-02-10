@@ -13,13 +13,14 @@ __all__ = ['load_images',
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
-def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
-    """
+def load_images(fp_src, fp_tgt=None):
+    """Load either a single or pair of images from disk
+
     Parameters
     ----------
     fp_src : str
         Filepath to EM image
-    fp_tgt : str
+    fp_tgt : str, optional
         Filepath to corresponding FM image
 
     Returns
@@ -36,6 +37,23 @@ def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
         by `decode_image` has a shape
       * automatically rescales intensity to (0, 1) range for dtype float32
     """
+    if fp_tgt is None:
+        return load_image(fp_src)
+    else:
+        return load_image_pair(fp_src, fp_tgt)
+
+def load_image(fp):
+    """Load single image"""
+    # Read images as float32
+    image = tf.io.decode_image(tf.io.read_file(fp),
+                               dtype='float32',
+                               expand_animations=False)
+    # Resize images to (256, 256)
+    image = tf.image.resize(image, size=[256, 256])
+    return image
+
+def load_image_pair(fp_src, fp_tgt):
+    """Load pair of images"""
     # Read images as float32
     image_src = tf.io.decode_image(tf.io.read_file(fp_src),
                                    dtype='float32',
@@ -43,18 +61,16 @@ def load_images(fp_src, fp_tgt, shape_src=None, shape_tgt=None):
     image_tgt = tf.io.decode_image(tf.io.read_file(fp_tgt),
                                    dtype='float32',
                                    expand_animations=False)
-
     # Resize images to (256, 256)
     image_src = tf.image.resize(image_src, size=[256, 256])	
     image_tgt = tf.image.resize(image_tgt, size=[256, 256])
-
     return image_src, image_tgt
 
 
 def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
                    repeat=False, n_repetitions=None, augment=False,
                    augmentations=None, shape_src=None, shape_tgt=None,
-                   batch=False, batch_size=None, prefetch=True, n_cores=None):
+                   batch=True, batch_size=None, prefetch=True, n_cores=None):
     """Create dataset from source and target filepaths
 
     Parameters
@@ -130,6 +146,112 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
         # Apply image augmentations
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
                     num_parallel_calls=n_cores//2)
+
+    # Resize images
+    if shape_src or shape_tgt:
+        shape_src = [256, 256] if shape_src is None else shape_src
+        shape_tgt = [256, 256] if shape_tgt is None else shape_tgt
+        ds = ds.map(lambda x, y: (tf.image.resize(x, size=shape_src),
+                                  tf.image.resize(y, size=shape_tgt)))
+
+    # Clip intensity values to 0 - 1 range
+    ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
+                              tf.clip_by_value(y, 0, 1)))
+
+    # Convert to float16 to save on GPU RAM
+    ds = ds.map(lambda x, y: (tf.image.convert_image_dtype(x, dtype='float16'),
+                              tf.image.convert_image_dtype(y, dtype='float16')))
+
+    # Batch
+    if batch:
+        # Choose a reasonable(?) batch size
+        # TODO: choose batch size intelligently
+        batch_size = 16 if batch_size is None \
+                        else batch_size
+        ds = ds.batch(batch_size)
+
+    # Prefetch
+    if prefetch:
+        ds = ds.prefetch(buffer_size=AUTOTUNE)
+
+    return ds
+
+
+def create_EM_dataset(fps_src, shuffle=False, buffer_size=None,
+                      repeat=False, n_repetitions=None, augment=False,
+                      augmentations=None, shape_src=None, shape_tgt=None,
+                      batch=True, batch_size=None, prefetch=True, n_cores=None):
+    """Create dataset from only source filepaths for testing purposes
+
+    Parameters
+    ----------
+    fps_src : list-like
+        List of source filepaths for training, validation, or testing
+    fps_tgt : list-like
+        List of target filepaths for training, validation, or testing
+    shuffle : bool (optional)
+        Whether to shuffle dataset
+    buffer_size : scalar (optional)
+        Buffer size for shuffling
+    repeat : bool (optional)
+        Whether to repeat dataset
+    n_repetitions : scalar (optional)
+        Number of repetitions
+    augment : bool
+        Whether to augment image data
+    augmentations : dict
+        Mapping of augmentations to apply
+    shape_src : tuple
+        Shape to resize source images to
+    shape_tgt : tuple
+        Shape to resize target images to
+    batch : bool (optional)
+        Whether to batch dataset
+    batch_size : scalar (optional)
+        Batch size
+    prefetch : bool (optional)
+        Whether to prefetch dataset (pre-load into GPU RAM)
+    n_cores : scalar (optional)
+        Number of cores to give to tensorflow tasks
+
+    Returns
+    -------
+    ds : `tf.data.Dataset`
+        Returns the (prefetched) `Dataset` object
+
+    References
+    ----------
+    [1] https://cs230.stanford.edu/blog/datapipeline/
+    """
+    # Choose number of cores if not provided
+    if n_cores is None:
+        n_cores = AUTOTUNE
+
+    # Create dataset of filepaths
+    ds_fps = tf.data.Dataset.from_tensor_slices(fps_src)
+
+    # Shuffle
+    if shuffle:
+        # Choose sufficiently high buffer size for proper shuffling
+        buffer_size = len(fps_src) if buffer_size is None \
+                                   else buffer_size
+        ds_fps = ds_fps.shuffle(buffer_size=buffer_size)
+
+    # Repeat
+    if repeat:
+        # Choose a reasonable(?) number of repetitions if not provided
+        # TODO: choose n_repetitions intelligently
+        n_repetitions = (17-6+5)//2 if n_repetitions is None \
+                                    else n_repetitions
+        ds_fps = ds_fps.repeat(count=n_repetitions)
+
+    # Load images
+    ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
+
+    # Augment images
+    if augment:
+        raise NotImplementedError("Augmentations not (yet) possible "
+                                  "with EM only dataset.")
 
     # Resize images
     if shape_src or shape_tgt:
