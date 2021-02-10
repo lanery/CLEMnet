@@ -249,7 +249,7 @@ def get_DataFrame(fps_src, fps_tgt=None):
         df['z'] =  df['source'].apply(lambda x: int(x.parent.name))
         df[['y', 'x', 'zoom']] = df['source'].apply(lambda x: x.stem.split('_')).tolist()
         df['source'] = df['source'].apply(lambda x: x.as_posix())
-        return df
+        return df.astype(int, errors='ignore')
 
     # EM and FM filepaths
     else:
