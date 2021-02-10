@@ -13,37 +13,62 @@ __all__ = ['apply_augmentations',
 # Default augmentations
 DEFAULT_AUGMENTATIONS = {
     'flip': 0.9,
-    'rotation': 0.9,
-    'crop': 0.5,
-    'elastic': 0.5,
-    'contrast': 0.5,
-    'brightness': 0.5,
-    'noise': 0.5,
+    'rotate': 0.9,
+    'crop': 0.3,
+    'elastic': 0.3,
+    'invert': 0.0,
+    'contrast': 0.3,
+    'brightness': 0.3,
+    'noise': 0.3,
 }
 
 
-def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
-                        elastic=0, contrast=0, brightness=0, noise=0):
+def apply_augmentations(x, y=None, flip=0, rotate=0, translation=0, crop=0,
+                        elastic=0, invert=0, contrast=0, brightness=0, noise=0):
     """Apply various image augmentations
 
     Parameters
     ----------
     x : `tf.Tensor`
         EM image tensor
-    y : `tf.Tensor`
+    y : `tf.Tensor` (optional)
         FM image tensor
     flip : scalar (0, 1)
         Probability of applying flip augmentation
-    rotation : scalar (0, 1)
+        Applied to both EM and FM images
+    rotate : scalar (0, 1)
         Probability of applying rotation augmentation
+        Applied to both EM and FM images
+    crop : scalar (0, 1)
+        Probability of applying crop augmentation
+        Applied to both EM and FM images
+    elastic : scalar (0, 1)
+        Probability of applying elastic augmentation
+        Applied to both EM and FM images
+    invert : scalar (0, 1)
+        Probability of applying invert augmentation
+        Only applied to EM image
+    contrast : scalar (0, 1)
+        Probability of applying contrast augmentation
+        Only applied to EM image
+    brightness : scalar (0, 1)
+        Probability of applying brightness augmentation
+        Only applied to EM image
+    noise : scalar (0, 1)
+        Probability of applying noise augmentation
+        Only applied to EM image
 
     Returns
     -------
     image : (M, N, d) array
         Augmented image
     """
-    # Concatenate tensors
-    xy = tf.concat([x, y], axis=2)
+    # Support lonely and correlative images
+    if y is None:
+        xy = x
+    else:
+        # Concatenate tensors
+        xy = tf.concat([x, y], axis=2)
 
     # Flips
     if flip:
@@ -55,13 +80,13 @@ def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
                                lambda: tf.image.random_flip_left_right(xy))
         xy = tf.cond(u > flip, lambda: xy,
                                lambda: tf.image.random_flip_up_down(xy))
-    # Rotation
-    if rotation:
-        # Give a `rotation`% chance of rotating 0, 90, 180, or 270deg
+    # Rotate
+    if rotate:
+        # Give a `rotate`% chance of rotating 0, 90, 180, or 270deg
         u = tf.random.uniform([], 0, 1, dtype=tf.float32)
         d = tf.random.uniform([], 0, 4, dtype=tf.int32)
-        xy = tf.cond(u > rotation, lambda: xy,
-                                   lambda: tf.image.rot90(xy, d))
+        xy = tf.cond(u > rotate, lambda: xy,
+                                 lambda: tf.image.rot90(xy, d))
     # Crop
     if crop:
         # Give a `crop`% chance of cropping the image 1-20%
@@ -80,8 +105,17 @@ def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
 
     # Split back into separate tensors for remaining augmentations
     # which are only applied to the EM images
-    x, y = tf.split(xy, 2, axis=2)
+    if y is None:  # EM only
+        x = xy
+    else:  # correlative image pair
+        x, y = tf.split(xy, 2, axis=2)
 
+    # Invert
+    if invert:
+        # Give an `invert`% chance of inverting the intensity
+        u = tf.random.uniform([], 0, 1, dtype=tf.float32)
+        x = tf.cond(u > invert, lambda: x,
+                                lambda: 1-x)
     # Contrast
     if contrast:
         # Give a `contrast`% chance of adjusting the contrast 75-150%
@@ -102,7 +136,11 @@ def apply_augmentations(x, y, flip=0, rotation=0, translation=0, crop=0,
         x = tf.cond(u > noise, lambda: x,
                                lambda: tf.random.poisson([], x*lam)/lam)
 
-    return x, y
+    # Support lonely and correlative images
+    if y is None:
+        return x
+    else:
+        return x, y
 
 
 def crop_augmentation(x):
