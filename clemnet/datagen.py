@@ -118,10 +118,8 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
         n_cores = AUTOTUNE
 
     # Create dataset of filepaths
-    if fps_tgt is None:
-        ds_fps = tf.data.Dataset.from_tensor_slices(fps_src)
-    else:
-        ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
+    ds_fps = tf.data.Dataset.from_tensor_slices(fps_src) if fps_tgt is None else \
+             tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
 
     # Shuffle
     if shuffle:
@@ -144,10 +142,8 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
     # Process dataset either as lonely (single channel) or
     #                           correlative (multichannel)
     process_args = [augment, augmentations, shape_src, shape_tgt, n_cores]
-    if fps_src is None:
-        ds = process_lonely_dataset(fps_src, *process_args)
-    else:
-        ds = process_correlative_dataset(fps_src, fps_tgt, *process_args)
+    ds = process_lonely_dataset(ds, *process_args) if fps_tgt is None else \
+         process_correlative_dataset(ds, *process_args)
 
     # Batch
     if batch:
@@ -163,7 +159,7 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
 
     return ds
 
-def process_lonely_dataset(fps_src, augment, augmentations,
+def process_lonely_dataset(ds, augment, augmentations,
                            shape_src, shape_tgt, n_cores):
     """Create dataset of single channel EM or FM images"""
     # Choose number of cores if not provided
@@ -188,7 +184,7 @@ def process_lonely_dataset(fps_src, augment, augmentations,
 
     return ds
 
-def process_correlative_dataset(fps_src, fps_tgt, augment, augmentations,
+def process_correlative_dataset(ds, augment, augmentations,
                                 shape_src, shape_tgt, n_cores):
     """Process dataset of correlative EM and FM image pairs"""
     # Choose number of cores if not provided
