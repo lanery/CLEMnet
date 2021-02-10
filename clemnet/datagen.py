@@ -49,7 +49,7 @@ def load_images(fp_src, fp_tgt=None):
         return image_src, image_tgt
 
 def load_and_resize_image(fp):
-    """"""
+    """Load and resize an image from disk"""
     # Read image as float32
     image = tf.io.decode_image(tf.io.read_file(fp),
                                dtype='float32',
@@ -160,8 +160,12 @@ def process_lonely_dataset(ds, augment, augmentations,
 
     # Augment images
     if augment:
-        raise NotImplementedError("Augmentations not (yet) possible "
-                                  "with EM only dataset.")
+        # Use default augmentations if not provided
+        augmentations = DEFAULT_AUGMENTATIONS if augmentations is None \
+                                              else augmentations
+        # Apply image augmentations
+        ds = ds.map(lambda x: apply_augmentations(x, **augmentations),
+                    num_parallel_calls=n_cores//2)
 
     # Resize images
     if shape_src:
