@@ -27,7 +27,7 @@ def load_images(fp_src, fp_tgt=None):
     -------
     image_src : (M, N, 1) array
         EM image rescaled to `shape_src` float16 array
-    image_tgt : (M, N, 1)
+    image_tgt : (M, N, 1) array
         FM image rescaled to `shape_tgt` float16 array
 
     Notes
@@ -37,34 +37,26 @@ def load_images(fp_src, fp_tgt=None):
         by `decode_image` has a shape
       * automatically rescales intensity to (0, 1) range for dtype float32
     """
+    # EM only filepath
     if fp_tgt is None:
-        return load_image(fp_src)
-    else:
-        return load_image_pair(fp_src, fp_tgt)
+        return load_and_resize_image(fp_src)
 
-def load_image(fp):
-    """Load single image"""
-    # Read images as float32
+    # EM and FM filepaths
+    else:
+        # Read images as float32
+        image_src = load_and_resize_image(fp_src)
+        image_tgt = load_and_resize_image(fp_tgt)
+        return image_src, image_tgt
+
+def load_and_resize_image(fp):
+    """"""
+    # Read image as float32
     image = tf.io.decode_image(tf.io.read_file(fp),
                                dtype='float32',
                                expand_animations=False)
-    # Resize images to (256, 256)
+    # Resize image to (256, 256)
     image = tf.image.resize(image, size=[256, 256])
     return image
-
-def load_image_pair(fp_src, fp_tgt):
-    """Load pair of images"""
-    # Read images as float32
-    image_src = tf.io.decode_image(tf.io.read_file(fp_src),
-                                   dtype='float32',
-                                   expand_animations=False)
-    image_tgt = tf.io.decode_image(tf.io.read_file(fp_tgt),
-                                   dtype='float32',
-                                   expand_animations=False)
-    # Resize images to (256, 256)
-    image_src = tf.image.resize(image_src, size=[256, 256])	
-    image_tgt = tf.image.resize(image_tgt, size=[256, 256])
-    return image_src, image_tgt
 
 
 def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
@@ -218,7 +210,7 @@ def process_correlative_dataset(ds, augment, augmentations,
     return ds
 
 
-def get_DataFrame(fps_src, fps_tgt):
+def get_DataFrame(fps_src, fps_tgt=None):
     """Utility function for creating a DataFrame from input filepaths
 
     Parameters
@@ -251,18 +243,28 @@ def get_DataFrame(fps_src, fps_tgt):
     1	/home/.../lil_EM...	1	0	0	4	    /home/.../hoech...
     2	/home/.../lil_EM...	1	0	0	5	    /home/.../hoech...
     """
-    # EM (source) images
-    df_EM = pd.DataFrame({'source': fps_src})
-    df_EM['z'] = df_EM['source'].apply(lambda x: int(x.parent.name))
-    df_EM[['y', 'x', 'zoom']] = df_EM['source'].apply(lambda x: x.stem.split('_')).tolist()
-    df_EM['source'] = df_EM['source'].apply(lambda x: x.as_posix())
+    # EM only filepaths
+    if fps_tgt is None:
+        df = pd.DataFrame({'source': fps_src})
+        df['z'] =  df['source'].apply(lambda x: int(x.parent.name))
+        df[['y', 'x', 'zoom']] = df['source'].apply(lambda x: x.stem.split('_')).tolist()
+        df['source'] = df['source'].apply(lambda x: x.as_posix())
+        return df
 
-    # FM (target) images
-    df_FM = pd.DataFrame({'target': fps_tgt})
-    df_FM['z'] = df_FM['target'].apply(lambda x: int(x.parent.name))
-    df_FM[['y', 'x', 'zoom']] = df_FM['target'].apply(lambda x: x.stem.split('_')).tolist()
-    df_FM['target'] = df_FM['target'].apply(lambda x: x.as_posix())
+    # EM and FM filepaths
+    else:
+        # EM (source) images
+        df_EM = pd.DataFrame({'source': fps_src})
+        df_EM['z'] = df_EM['source'].apply(lambda x: int(x.parent.name))
+        df_EM[['y', 'x', 'zoom']] = df_EM['source'].apply(lambda x: x.stem.split('_')).tolist()
+        df_EM['source'] = df_EM['source'].apply(lambda x: x.as_posix())
 
-    # Remove EM images with no corresponding FM (and vice versa) via merge
-    df = pd.merge(df_EM, df_FM, how='inner').astype(int, errors='ignore')
-    return df
+        # FM (target) images
+        df_FM = pd.DataFrame({'target': fps_tgt})
+        df_FM['z'] = df_FM['target'].apply(lambda x: int(x.parent.name))
+        df_FM[['y', 'x', 'zoom']] = df_FM['target'].apply(lambda x: x.stem.split('_')).tolist()
+        df_FM['target'] = df_FM['target'].apply(lambda x: x.as_posix())
+
+        # Remove EM images with no corresponding FM (and vice versa) via merge
+        df = pd.merge(df_EM, df_FM, how='inner').astype(int, errors='ignore')
+        return df
