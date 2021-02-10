@@ -20,7 +20,7 @@ def load_images(fp_src, fp_tgt=None):
     ----------
     fp_src : str
         Filepath to EM image
-    fp_tgt : str, optional
+    fp_tgt : str (optional)
         Filepath to corresponding FM image
 
     Returns
@@ -67,7 +67,7 @@ def load_image_pair(fp_src, fp_tgt):
     return image_src, image_tgt
 
 
-def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
+def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
                    repeat=False, n_repetitions=None, augment=False,
                    augmentations=None, shape_src=None, shape_tgt=None,
                    batch=True, batch_size=None, prefetch=True, n_cores=None):
@@ -77,7 +77,7 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     ----------
     fps_src : list-like
         List of source filepaths for training, validation, or testing
-    fps_tgt : list-like
+    fps_tgt : list-like (optional)
         List of target filepaths for training, validation, or testing
     shuffle : bool (optional)
         Whether to shuffle dataset
@@ -113,6 +113,56 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     ----------
     [1] https://cs230.stanford.edu/blog/datapipeline/
     """
+    # Choose number of cores if not provided
+    if n_cores is None:
+        n_cores = AUTOTUNE
+
+    # Create dataset of filepaths
+    if fps_tgt is None:
+        ds_fps = tf.data.Dataset.from_tensor_slices(fps_src)
+    else:
+        ds_fps = tf.data.Dataset.from_tensor_slices((fps_src, fps_tgt))
+
+    # Shuffle
+    if shuffle:
+        # Choose sufficiently high buffer size for proper shuffling
+        buffer_size = len(fps_src) if buffer_size is None \
+                                   else buffer_size
+        ds_fps = ds_fps.shuffle(buffer_size=buffer_size)
+
+    # Repeat
+    if repeat:
+        # Choose a reasonable(?) number of repetitions if not provided
+        # TODO: choose n_repetitions intelligently
+        n_repetitions = (17-6+5)//2 if n_repetitions is None \
+                                    else n_repetitions
+        ds_fps = ds_fps.repeat(count=n_repetitions)
+
+    # Load images
+    ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
+
+    return ds
+
+
+
+
+    # if fps_tgt is None:
+    #     return create_lonely_dataset()
+    # else:
+    #     return create_correlative_dataset(
+    #         fps_src, fps_tgt,
+    #         shuffle=shuffle, buffer_size=buffer_size,
+    #         repeat=repeat, n_repetitions=n_repetitions,
+    #         augment=augment, augmentations=augmentations,
+    #         shape_src=shape_src, shape_tgt=shape_tgt,
+    #         batch=batch, batch_size=batch_size,
+    #         prefetch=prefetch, n_cores=n_cores)
+
+def create_correlative_dataset(fps_src, fps_tgt, shuffle, buffer_size,
+                               repeat, n_repetitions, augment, augmentations,
+                               shape_src, shape_tgt, batch, batch_size,
+                               prefetch, n_cores):
+    """Create dataset of correlative EM and FM image pairs"""
     # Choose number of cores if not provided
     if n_cores is None:
         n_cores = AUTOTUNE
@@ -177,52 +227,11 @@ def create_dataset(fps_src, fps_tgt, shuffle=True, buffer_size=None,
     return ds
 
 
-def create_EM_dataset(fps_src, shuffle=False, buffer_size=None,
-                      repeat=False, n_repetitions=None, augment=False,
-                      augmentations=None, shape_src=None, shape_tgt=None,
-                      batch=True, batch_size=None, prefetch=True, n_cores=None):
-    """Create dataset from only source filepaths for testing purposes
-
-    Parameters
-    ----------
-    fps_src : list-like
-        List of source filepaths for training, validation, or testing
-    fps_tgt : list-like
-        List of target filepaths for training, validation, or testing
-    shuffle : bool (optional)
-        Whether to shuffle dataset
-    buffer_size : scalar (optional)
-        Buffer size for shuffling
-    repeat : bool (optional)
-        Whether to repeat dataset
-    n_repetitions : scalar (optional)
-        Number of repetitions
-    augment : bool
-        Whether to augment image data
-    augmentations : dict
-        Mapping of augmentations to apply
-    shape_src : tuple
-        Shape to resize source images to
-    shape_tgt : tuple
-        Shape to resize target images to
-    batch : bool (optional)
-        Whether to batch dataset
-    batch_size : scalar (optional)
-        Batch size
-    prefetch : bool (optional)
-        Whether to prefetch dataset (pre-load into GPU RAM)
-    n_cores : scalar (optional)
-        Number of cores to give to tensorflow tasks
-
-    Returns
-    -------
-    ds : `tf.data.Dataset`
-        Returns the (prefetched) `Dataset` object
-
-    References
-    ----------
-    [1] https://cs230.stanford.edu/blog/datapipeline/
-    """
+def create_lonely_dataset(fps_src, fps_tgt, shuffle, buffer_size,
+                          repeat, n_repetitions, augment, augmentations,
+                          shape_src, shape_tgt, batch, batch_size,
+                          prefetch, n_cores):
+    """Create dataset of single channel EM or FM images"""
     # Choose number of cores if not provided
     if n_cores is None:
         n_cores = AUTOTUNE
