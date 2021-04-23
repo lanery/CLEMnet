@@ -13,7 +13,7 @@ __all__ = ['load_images',
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
-def load_images(fp_src, fp_tgt=None):
+def load_images(fp_src, fp_tgt=None, shape_src=None, shape_tgt=None):
     """Load either a single or pair of images from disk
 
     Parameters
@@ -39,30 +39,31 @@ def load_images(fp_src, fp_tgt=None):
     """
     # EM only filepath
     if fp_tgt is None:
-        return load_and_resize_image(fp_src)
+        return load_and_resize_image(fp_src, output_shape=shape_src)
 
     # EM and FM filepaths
     else:
         # Read images as float32
-        image_src = load_and_resize_image(fp_src)
-        image_tgt = load_and_resize_image(fp_tgt)
+        image_src = load_and_resize_image(fp_src, output_shape=shape_src)
+        image_tgt = load_and_resize_image(fp_tgt, output_shape=shape_tgt)
         return image_src, image_tgt
 
-def load_and_resize_image(fp):
+def load_and_resize_image(fp, output_shape=None):
     """Load and resize an image from disk"""
     # Read image as float32
     image = tf.io.decode_image(tf.io.read_file(fp),
                                dtype='float32',
                                expand_animations=False)
-    # Resize image to (256, 256)
-    image = tf.image.resize(image, size=[256, 256])
+    # Resize image
+    if output_shape is not None:
+        image = tf.image.resize(image, size=output_shape)
     return image
 
 
 def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
-                   repeat=False, n_repetitions=None, augment=False,
-                   augmentations=None, shape_src=None, shape_tgt=None,
-                   batch=True, batch_size=None, prefetch=True, n_cores=None):
+                   repeat=False, n_repetitions=None, shape_src=None, shape_tgt=None,
+                   augment=False, augmentations=None, batch=True, batch_size=None,
+                   prefetch=True, n_cores=None):
     """Create dataset from source and target filepaths
 
     Parameters
@@ -79,14 +80,14 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
         Whether to repeat dataset
     n_repetitions : scalar (optional)
         Number of repetitions
-    augment : bool (optional)
-        Whether to augment image data
-    augmentations : dict (optional)
-        Mapping of augmentations to apply
     shape_src : tuple (optional)
         Shape to resize source images to
     shape_tgt : tuple (optional)
         Shape to resize target images to
+    augment : bool (optional)
+        Whether to augment image data
+    augmentations : dict (optional)
+        Mapping of augmentations to apply
     batch : bool (optional)
         Whether to batch dataset
     batch_size : scalar (optional)
@@ -128,14 +129,11 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
                                     else n_repetitions
         ds_fps = ds_fps.repeat(count=n_repetitions)
 
-    # Load images
-    ds = ds_fps.map(load_images, num_parallel_calls=n_cores//2)
-
     # Process dataset either as lonely (single channel) or
     #                           correlative (multichannel)
-    process_args = [augment, augmentations, shape_src, shape_tgt, n_cores]
-    ds = process_lonely_dataset(ds, *process_args) if fps_tgt is None else \
-         process_correlative_dataset(ds, *process_args)
+    process_args = [shape_src, shape_tgt, augment, augmentations, n_cores]
+    ds = process_lonely_dataset(ds_fps, *process_args) if fps_tgt is None else \
+         process_correlative_dataset(ds_fps, *process_args)
 
     # Batch
     if batch:
@@ -151,13 +149,19 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
 
     return ds
 
-def process_lonely_dataset(ds, augment, augmentations,
-                           shape_src, shape_tgt, n_cores):
+def process_lonely_dataset(ds, shape_src, shape_tgt,
+                           augment, augmentations, n_cores):
     """Create dataset of single channel EM or FM images"""
     # Choose number of cores if not provided
     if n_cores is None:
         n_cores = AUTOTUNE
 
+    # Load and resize images
+    if shape_src:
+        shape_src = [256, 256] if shape_src is None else shape_src
+        ds = ds.map(lambda x: load_images(x, shape_src=shape_src))
+
+    # Load images
     # Augment images
     if augment:
         # Use default augmentations if not provided
@@ -167,11 +171,6 @@ def process_lonely_dataset(ds, augment, augmentations,
         ds = ds.map(lambda x: apply_augmentations(x, **augmentations),
                     num_parallel_calls=n_cores//2)
 
-    # Resize images
-    if shape_src:
-        shape_src = [256, 256] if shape_src is None else shape_src
-        ds = ds.map(lambda x: tf.image.resize(x, size=shape_src))
-
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x: tf.clip_by_value(x, 0, 1))
 
@@ -180,12 +179,16 @@ def process_lonely_dataset(ds, augment, augmentations,
 
     return ds
 
-def process_correlative_dataset(ds, augment, augmentations,
-                                shape_src, shape_tgt, n_cores):
+def process_correlative_dataset(ds, shape_src, shape_tgt, augment, augmentations, n_cores):
     """Process dataset of correlative EM and FM image pairs"""
     # Choose number of cores if not provided
     if n_cores is None:
         n_cores = AUTOTUNE
+
+    # Load images
+    shape_src = [256, 256] if shape_src is None else shape_src
+    shape_tgt_ = shape_src  # resize tgt images properly after augmentations
+    ds = ds.map(lambda x, y: (load_images(x, y, shape_src, shape_tgt_)))
 
     # Augment images
     if augment:
@@ -196,12 +199,9 @@ def process_correlative_dataset(ds, augment, augmentations,
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
                     num_parallel_calls=n_cores//2)
 
-    # Resize images
-    if shape_src or shape_tgt:
-        shape_src = [256, 256] if shape_src is None else shape_src
-        shape_tgt = [256, 256] if shape_tgt is None else shape_tgt
-        ds = ds.map(lambda x, y: (tf.image.resize(x, size=shape_src),
-                                  tf.image.resize(y, size=shape_tgt)))
+    # Resize FM images
+    if shape_tgt:
+        ds = ds.map(lambda x, y: (x, tf.image.resize(y, size=shape_tgt)))
 
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x, y: (tf.clip_by_value(x, 0, 1),
