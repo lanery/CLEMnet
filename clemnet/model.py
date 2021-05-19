@@ -12,13 +12,16 @@ __all__ = ['get_model',
            'get_dummy']
 
 
-def get_model(input_shape=(256, 256)):
+def get_model(input_shape=(256, 256), crop=False, crop_width=None):
     """U-net-like convolutional neural network
-
     Parameters
     ----------
     input_shape : tuple
         Shape of input image data
+    crop : bool
+        Whether to include a cropping layer
+    crop_width : int
+        Number of pixels to crop from each border
 
     Returns
     -------
@@ -80,6 +83,11 @@ def get_model(input_shape=(256, 256)):
     conv7 = layers.Conv2D(256, 3, **kwargs)(merg7)
     conv7 = layers.Conv2D(256, 3, **kwargs)(conv7)
     conv7 = layers.Conv2D(2, 3, **kwargs)(conv7)
+
+    # Cropping layer
+    if crop:
+        cropping = ((crop_width, crop_width), (crop_width, crop_width))
+        conv7 = layers.Cropping2D(cropping=cropping)(conv7)
 
     # Output layer
     conv8 = layers.Conv2D(1, 1, activation='sigmoid')(conv7)
