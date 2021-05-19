@@ -62,8 +62,8 @@ def load_and_resize_image(fp, output_shape=None):
 
 def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
                    repeat=False, n_repetitions=None, shape_src=None, shape_tgt=None,
-                   augment=False, augmentations=None, batch=True, batch_size=None,
-                   prefetch=True, n_cores=None):
+                   augment=False, augmentations=None, pad=False, padding=None,
+                   batch=True, batch_size=None, prefetch=True, n_cores=None):
     """Create dataset from source and target filepaths
 
     Parameters
@@ -131,9 +131,9 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
 
     # Process dataset either as lonely (single channel) or
     #                           correlative (multichannel)
-    process_args = [shape_src, shape_tgt, augment, augmentations, n_cores]
-    ds = process_lonely_dataset(ds_fps, *process_args) if fps_tgt is None else \
-         process_correlative_dataset(ds_fps, *process_args)
+    process_args = [shape_src, shape_tgt, augment, augmentations, pad, padding, n_cores]
+    ds = _process_lonely_dataset(ds_fps, *process_args) if fps_tgt is None else \
+         _process_correlative_dataset(ds_fps, *process_args)
 
     # Batch
     if batch:
@@ -149,8 +149,9 @@ def create_dataset(fps_src, fps_tgt=None, shuffle=True, buffer_size=None,
 
     return ds
 
-def process_lonely_dataset(ds, shape_src, shape_tgt,
-                           augment, augmentations, n_cores):
+def _process_lonely_dataset(ds, shape_src, shape_tgt,
+                            augment, augmentations,
+                            pad, padding, n_cores):
     """Create dataset of single channel EM or FM images"""
     # Choose number of cores if not provided
     if n_cores is None:
@@ -161,7 +162,6 @@ def process_lonely_dataset(ds, shape_src, shape_tgt,
         shape_src = [256, 256] if shape_src is None else shape_src
         ds = ds.map(lambda x: load_images(x, shape_src=shape_src))
 
-    # Load images
     # Augment images
     if augment:
         # Use default augmentations if not provided
@@ -171,6 +171,15 @@ def process_lonely_dataset(ds, shape_src, shape_tgt,
         ds = ds.map(lambda x: apply_augmentations(x, **augmentations),
                     num_parallel_calls=n_cores//2)
 
+    # Pad EM images
+    if pad:
+        # Set padding if not provided
+        padding = tf.constant([[16, 16],
+                               [16, 16],
+                               [ 0,  0]]) if padding is None \
+                                          else padding
+        ds = ds.map(lambda x: tf.pad(x, padding, mode='SYMMETRIC'))
+
     # Clip intensity values to 0 - 1 range
     ds = ds.map(lambda x: tf.clip_by_value(x, 0, 1))
 
@@ -179,7 +188,9 @@ def process_lonely_dataset(ds, shape_src, shape_tgt,
 
     return ds
 
-def process_correlative_dataset(ds, shape_src, shape_tgt, augment, augmentations, n_cores):
+def _process_correlative_dataset(ds, shape_src, shape_tgt,
+                                 augment, augmentations,
+                                 pad, padding, n_cores):
     """Process dataset of correlative EM and FM image pairs"""
     # Choose number of cores if not provided
     if n_cores is None:
@@ -198,6 +209,16 @@ def process_correlative_dataset(ds, shape_src, shape_tgt, augment, augmentations
         # Apply image augmentations
         ds = ds.map(lambda x, y: apply_augmentations(x, y, **augmentations),
                     num_parallel_calls=n_cores//2)
+
+    # Pad images
+    if pad:
+        # Set padding if not provided
+        padding = tf.constant([[16, 16],
+                               [16, 16],
+                               [ 0,  0]]) if padding is None \
+                                          else padding
+        ds = ds.map(lambda x, y: (tf.pad(x, padding, mode='SYMMETRIC'),
+                                  tf.pad(y, padding, mode='SYMMETRIC')))
 
     # Resize FM images
     if shape_tgt:
