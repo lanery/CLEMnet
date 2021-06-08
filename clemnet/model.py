@@ -8,11 +8,10 @@ from tensorflow.keras import layers
 
 __all__ = ['get_model',
            'get_unet',
-           'get_ogish_clemnet',
            'get_dummy']
 
 
-def get_model(input_shape=(256, 256), crop=False, crop_width=None):
+def get_model(input_shape=(1024, 1024), crop=False, crop_width=None):
     """U-net-like convolutional neural network
     Parameters
     ----------
@@ -49,50 +48,48 @@ def get_model(input_shape=(256, 256), crop=False, crop_width=None):
     # Downsampling arm
     # ----------------
     # Block 1
-    conv1 = layers.Conv2D(64, 3, **kwargs)(inputs)
-    conv1 = layers.Conv2D(64, 3, **kwargs)(conv1)
+    conv1 = layers.Conv2D(32, 3, **kwargs)(inputs)
     pool1 = layers.MaxPooling2D(2)(conv1)
     # Block 2
-    conv2 = layers.Conv2D(128, 3, **kwargs)(pool1)
-    conv2 = layers.Conv2D(128, 3, **kwargs)(conv2)
+    conv2 = layers.Conv2D(64, 3, **kwargs)(pool1)
     pool2 = layers.MaxPooling2D(2)(conv2)
     # Block 3
-    conv3 = layers.Conv2D(256, 3, **kwargs)(pool2)
-    conv3 = layers.Conv2D(256, 3, **kwargs)(conv3)
+    conv3 = layers.Conv2D(128, 3, **kwargs)(pool2)
     pool3 = layers.MaxPooling2D(2)(conv3)
     # Block 4
-    conv4 = layers.Conv2D(512, 3, **kwargs)(pool3)
-    conv4 = layers.Conv2D(512, 3, **kwargs)(conv4)
-    drop4 = layers.Dropout(0.5)(conv4)
-    pool4 = layers.MaxPooling2D(2)(drop4)
-    # Block 5 (bottom of the U)
-    conv5 = layers.Conv2D(1024, 3, **kwargs)(pool4)
-    conv5 = layers.Conv2D(1024, 3, **kwargs)(conv5)
-    drop5 = layers.Dropout(0.5)(conv5)
+    conv4 = layers.Conv2D(256, 3, **kwargs)(pool3)
+    pool4 = layers.MaxPooling2D(2)(conv4)
+    # Block 5
+    conv5 = layers.Conv2D(512, 3, **kwargs)(pool4)
+    pool5 = layers.MaxPooling2D(2)(conv5)
+    # Block 6
+    conv6 = layers.Conv2D(1024, 3, **kwargs)(pool5)
+    pool6 = layers.MaxPooling2D(2)(conv6)
 
     # Upsampling arm
     # --------------
-    # Block 6
-    uppp6 = layers.Conv2D(512, 3, **kwargs)(layers.UpSampling2D(2)(drop5))
-    merg6 = layers.concatenate([drop4, uppp6], axis=3)
-    conv6 = layers.Conv2D(512, 3, **kwargs)(merg6)
-    conv6 = layers.Conv2D(512, 3, **kwargs)(conv6)
     # Block 7
-    uppp7 = layers.Conv2D(256, 3, **kwargs)(layers.UpSampling2D(2)(conv6))
-    merg7 = layers.concatenate([conv3, uppp7], axis=3)
-    conv7 = layers.Conv2D(256, 3, **kwargs)(merg7)
-    conv7 = layers.Conv2D(256, 3, **kwargs)(conv7)
-    conv7 = layers.Conv2D(2, 3, **kwargs)(conv7)
+    conv7 = layers.Conv2D(1024, 3, **kwargs)(pool6)
+    uppp7 = layers.UpSampling2D(2)(conv7)
+    # Block 8
+    merg8 = layers.concatenate([conv6, uppp7], axis=3)
+    conv8 = layers.Conv2D(1024, 3, **kwargs)(merg8)
+    uppp8 = layers.UpSampling2D(2)(conv8)
+    # Block 9
+    merg9 = layers.concatenate([conv5, uppp8], axis=3)
+    conv9 = layers.Conv2D(512, 3, **kwargs)(merg9)
+    uppp9 = layers.UpSampling2D(2)(conv9)
+    # Block 10
+    merg10 = layers.concatenate([conv4, uppp9], axis=3)
+    conv10 = layers.Conv2D(256, 3, **kwargs)(merg10)
+    conv10 = layers.Conv2D(2, 3, **kwargs)(conv10)
 
-    # Cropping layer
-    if crop:
-        cropping = ((crop_width, crop_width), (crop_width, crop_width))
-        conv7 = layers.Cropping2D(cropping=cropping)(conv7)
+    # Additional upsampling
+    uppp11 = layers.UpSampling2D(2)(conv10)
 
     # Output layer
-    conv8 = layers.Conv2D(1, 1, activation='sigmoid')(conv7)
-    model = keras.Model(inputs=inputs, outputs=conv8)
-
+    conv11 = layers.Conv2D(1, 1, activation='sigmoid')(uppp11)
+    model = keras.Model(inputs=inputs, outputs=conv11)
     return model
 
 
@@ -171,56 +168,6 @@ def get_unet(input_shape=(256, 256)):
 
     model = keras.Model(inputs=inputs, outputs=conv10)
 
-    return model
-
-
-def get_ogish_clemnet(input_shape=(1024, 1024)):
-    """
-    """
-    # Create input layer
-    input_shape = (*input_shape, 1) if len(input_shape) < 3 else input_shape
-    inputs = layers.Input(shape=input_shape)
-
-    # Set up keyword arguments for convolutional layers
-    kwargs = {
-        'activation': 'relu',
-        'padding': 'same',
-        'kernel_initializer': 'he_normal'
-    }
-
-    # Downsampling layers
-    conv0 = keras.layers.Conv2D(32, 3, **kwargs)(inputs)
-    pool0 = keras.layers.MaxPooling2D(2)(conv0)
-    conv1 = keras.layers.Conv2D(64, 3, **kwargs)(pool0)
-    pool1 = keras.layers.MaxPooling2D(2)(conv1)
-    conv2 = keras.layers.Conv2D(128, 3, **kwargs)(pool1)
-    pool2 = keras.layers.MaxPooling2D(2)(conv2)
-    conv3 = keras.layers.Conv2D(256, 3, **kwargs)(pool2)
-    pool3 = keras.layers.MaxPooling2D(2)(conv3)
-    conv4 = keras.layers.Conv2D(512, 3, **kwargs)(pool3)
-    pool4 = keras.layers.MaxPooling2D(2)(conv4)
-    conv5 = keras.layers.Conv2D(1024, 3, **kwargs)(pool4)
-    pool5 = keras.layers.MaxPooling2D(2)(conv5)
-    drop5 = keras.layers.Dropout(0.5)(pool5)
-
-    # Upsampling layers
-    conv6 = keras.layers.Conv2D(512, 3, **kwargs)(drop5)
-    up6 = keras.layers.UpSampling2D(2)(conv6)
-    merge7 = keras.layers.concatenate([conv5, up6], axis=3)
-    conv7 = keras.layers.Conv2D(256, 3, **kwargs)(merge7)
-    up7 = keras.layers.UpSampling2D(2)(conv7)
-    merge8 = keras.layers.concatenate([conv4, up7], axis=3)
-    conv8 = keras.layers.Conv2D(128, 3, **kwargs)(merge8)
-    up8 = keras.layers.UpSampling2D(2)(conv8)
-    merge9 = keras.layers.concatenate([conv3, up8], axis=3)
-    conv9 = keras.layers.Conv2D(64, 3, **kwargs)(merge9)
-    up9 = keras.layers.UpSampling2D(2)(conv9)
-
-    # Output layer
-    conv10 = keras.layers.Conv2D(1, 1, activation= 'sigmoid')(up9)
-
-    # Build model
-    model = keras.Model(inputs=inputs, outputs=conv10)
     return model
 
 
