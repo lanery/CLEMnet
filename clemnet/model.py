@@ -87,6 +87,11 @@ def get_model(input_shape=(1024, 1024), crop=False, crop_width=None):
     # Additional upsampling
     uppp11 = layers.UpSampling2D(2)(conv10)
 
+    # Cropping layer
+    if crop is not None:
+        cropping = ((crop_width, crop_width), (crop_width, crop_width))
+        uppp11 = layers.Cropping2D(cropping=cropping)(uppp11)
+
     # Output layer
     conv11 = layers.Conv2D(1, 1, activation='sigmoid')(uppp11)
     model = keras.Model(inputs=inputs, outputs=conv11)
