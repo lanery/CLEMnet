@@ -88,7 +88,7 @@ def get_model(input_shape=(1024, 1024), crop=False, crop_width=None):
     uppp11 = layers.UpSampling2D(2)(conv10)
 
     # Cropping layer
-    if crop is not None:
+    if crop:
         cropping = ((crop_width, crop_width), (crop_width, crop_width))
         uppp11 = layers.Cropping2D(cropping=cropping)(uppp11)
 
